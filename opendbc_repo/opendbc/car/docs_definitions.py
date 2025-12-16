@@ -273,13 +273,13 @@ class CarDocs:
     # longitudinal column
     op_long = "Stock"
     if CP.alphaLongitudinalAvailable or CP.enableDsu:
-      op_long = "openpilot available"
+      op_long = "dragonpilot available"
       if CP.enableDsu:
         self.footnotes.append(CommonFootnote.EXP_LONG_DSU)
       else:
         self.footnotes.append(CommonFootnote.EXP_LONG_AVAIL)
     elif CP.openpilotLongitudinalControl and not CP.enableDsu:
-      op_long = "openpilot"
+      op_long = "dragonpilot"
 
     # min steer & enable speed columns
     # TODO: set all the min steer speeds in carParams and remove this
