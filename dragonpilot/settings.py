@@ -3,6 +3,24 @@ SETTINGS = [
     "title": "Toyota / Lexus",
     "condition": "brand == 'toyota'",
     "settings": [
+      {
+        "key": "dp_toyota_door_auto_lock_unlock",
+        "type": "toggle_item",
+        "title": "Door Auto Lock/Unlock",
+        "description": "Enable openpilot to auto-lock doors above 20 km/h and auto-unlock when shifting to Park."
+      },
+      {
+        "key": "dp_toyota_tss1_sng",
+        "type": "toggle_item",
+        "title": "Enable TSS1 SnG Mod",
+        "description": ""
+      },
+      {
+        "key": "dp_toyota_stock_lon",
+        "type": "toggle_item",
+        "title": "Use Stock Longitudinal Control",
+        "description": ""
+      },
 
     ],
   },
@@ -10,6 +28,24 @@ SETTINGS = [
     "title": "VAG",
     "condition": "brand == 'volkswagen'",
     "settings": [
+      {
+        "key": "dp_vag_a0_sng",
+        "type": "toggle_item",
+        "title": "MQB A0 SnG Mod",
+        "description": ""
+      },
+      {
+        "key": "dp_vag_pq_steering_patch",
+        "type": "toggle_item",
+        "title": "PQ Steering Patch",
+        "description": ""
+      },
+      {
+        "key": "dp_vag_avoid_eps_lockout",
+        "type": "toggle_item",
+        "title": "Avoid EPS Lockout",
+        "description": ""
+      },
 
     ],
   },

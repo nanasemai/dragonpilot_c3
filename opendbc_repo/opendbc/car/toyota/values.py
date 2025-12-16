@@ -57,11 +57,14 @@ class ToyotaSafetyFlags(IntFlag):
   LTA = (4 << 8)
   SECOC = (8 << 8)
   UNSUPPORTED_DSU = (16 << 8)  # dp - use DSU_CRUISE (0x365) for ACC main instead of PCM_CRUISE_2 (0x1D3)
+  LOCK_CTRL = (32 << 8)
 
 
 class ToyotaFlags(IntFlag):
   # Detected flags
   HYBRID = 1
+  # use legacy id
+  SDSU = 2
   DISABLE_RADAR = 4
 
   # Static flags
@@ -78,6 +81,11 @@ class ToyotaFlags(IntFlag):
   RAISED_ACCEL_LIMIT = 1024
   SECOC = 2048
 
+  LOCK_CTRL = 2 ** 12
+  TSS1_SNG = 2 ** 13
+  RADAR_FILTER = 2 ** 14
+  DSU_BYPASS = 2 ** 15
+  ZSS = 2 ** 16
 
 def dbc_dict(pt, radar):
   return {Bus.pt: pt, Bus.radar: radar}
