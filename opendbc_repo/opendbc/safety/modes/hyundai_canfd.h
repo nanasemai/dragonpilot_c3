@@ -88,9 +88,19 @@ static void hyundai_canfd_rx_hook(const CANPacket_t *msg) {
       if (msg->addr == 0x1cfU) {
         cruise_button = msg->data[2] & 0x7U;
         main_button = GET_BIT(msg, 19U);
+
+        // dp - ALKA: track LKAS button (bit 23 in 0x1CF)
+        if (alka_allowed && (alternative_experience & ALT_EXP_ALKA)) {
+          hyundai_lkas_button_check(GET_BIT(msg, 23U));
+        }
       } else {
         cruise_button = (msg->data[4] >> 4) & 0x7U;
         main_button = GET_BIT(msg, 34U);
+
+        // dp - ALKA: track LKAS button (bit 39 in 0x1AA)
+        if (alka_allowed && (alternative_experience & ALT_EXP_ALKA)) {
+          hyundai_lkas_button_check(GET_BIT(msg, 39U));
+        }
       }
       hyundai_common_cruise_buttons_check(cruise_button, main_button);
     }
@@ -131,6 +141,13 @@ static void hyundai_canfd_rx_hook(const CANPacket_t *msg) {
       int cruise_status = ((msg->data[8] >> 4) & 0x7U);
       bool cruise_engaged = (cruise_status == 1) || (cruise_status == 2);
       hyundai_common_cruise_state_check(cruise_engaged);
+
+      // dp - ALKA: track ACC main state (SCC_CONTROL 0x1A0, bit 66 = MainMode_ACC)
+      // ACC main persists across ignition cycles on some models
+      if (alka_allowed && (alternative_experience & ALT_EXP_ALKA)) {
+        bool acc_main_on_current = GET_BIT(msg, 66U);
+        hyundai_acc_main_check(acc_main_on_current);
+      }
     }
   }
 }
@@ -216,6 +233,8 @@ static bool hyundai_canfd_tx_hook(const CANPacket_t *msg) {
 }
 
 static safety_config hyundai_canfd_init(uint16_t param) {
+  alka_allowed = true;  // dp - ALKA enabled for Hyundai CAN-FD
+
   const int HYUNDAI_PARAM_CANFD_LKA_STEERING_ALT = 128;
   const int HYUNDAI_PARAM_CANFD_ALT_BUTTONS = 32;
 

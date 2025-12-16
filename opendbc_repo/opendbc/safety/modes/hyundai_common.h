@@ -44,6 +44,10 @@ bool hyundai_alt_limits_2 = false;
 
 static uint8_t hyundai_last_button_interaction;  // button messages since the user pressed an enable button
 
+// dp - ALKA: static variables for Hyundai (reset in hyundai_common_init)
+static bool hyundai_lkas_btn_prev = false;
+static bool hyundai_acc_main_prev = false;
+
 void hyundai_common_init(uint16_t param) {
   const int HYUNDAI_PARAM_EV_GAS = 1;
   const int HYUNDAI_PARAM_HYBRID_GAS = 2;
@@ -62,6 +66,10 @@ void hyundai_common_init(uint16_t param) {
   hyundai_alt_limits_2 = GET_FLAG(param, HYUNDAI_PARAM_ALT_LIMITS_2);
 
   hyundai_last_button_interaction = HYUNDAI_PREV_BUTTON_SAMPLES;
+
+  // dp - ALKA: reset static variables for button/main tracking
+  hyundai_lkas_btn_prev = false;
+  hyundai_acc_main_prev = false;
 
 #ifdef ALLOW_DEBUG
   const int HYUNDAI_PARAM_LONGITUDINAL = 4;
@@ -112,6 +120,7 @@ void hyundai_common_cruise_buttons_check(const int cruise_button, const bool mai
   }
 }
 
+#ifdef CANFD
 uint32_t hyundai_common_canfd_compute_checksum(const CANPacket_t *msg) {
   int len = GET_LEN(msg);
   uint32_t address = msg->addr;
@@ -135,4 +144,22 @@ uint32_t hyundai_common_canfd_compute_checksum(const CANPacket_t *msg) {
   }
 
   return crc;
+}
+#endif
+
+// dp - ALKA: track LKAS button state for Hyundai (toggle on rising edge)
+void hyundai_lkas_button_check(const bool lkas_btn_pressed) {
+  if (lkas_btn_pressed && !hyundai_lkas_btn_prev) {
+    lkas_on = !lkas_on;
+  }
+  hyundai_lkas_btn_prev = lkas_btn_pressed;
+}
+
+// dp - ALKA: track ACC main state for Hyundai (main switch behavior)
+// Falling edge: disable lkas_on
+void hyundai_acc_main_check(const bool acc_main_on_current) {
+  if (!acc_main_on_current && hyundai_acc_main_prev) {
+    lkas_on = false;
+  }
+  hyundai_acc_main_prev = acc_main_on_current;
 }

@@ -20,6 +20,9 @@ class CarState(CarStateBase):
     self.distance_button = 0
     self.lc_button = 0
 
+    # dp - ALKA: track previous ACC main state for rising/falling edge detection
+    self.acc_main_prev = False
+
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.pt]
     cp_cam = can_parsers[Bus.cam]
@@ -112,6 +115,16 @@ class CarState(CarStateBase):
       *create_button_events(self.distance_button, prev_distance_button, {1: ButtonType.gapAdjustCruise}),
       *create_button_events(self.lc_button, prev_lc_button, {1: ButtonType.lkas}),
     ]
+
+    # dp - ALKA: track lkas_on state (mirrors panda's ford_acc_main_check and ford_tja_button_check)
+    # ACC main: falling edge disables (main switch behavior)
+    if not ret.cruiseState.available and self.acc_main_prev:
+      self.lkas_on = False
+    self.acc_main_prev = ret.cruiseState.available
+    # TJA button: rising edge toggles (like Hyundai's LKAS button)
+    for event in ret.buttonEvents:
+      if event.type == ButtonType.lkas and event.pressed:
+        self.lkas_on = not self.lkas_on
 
     return ret
 

@@ -26,6 +26,9 @@ class CarInterface(CarInterfaceBase):
     ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.toyota)]
     ret.safetyConfigs[0].safetyParam = EPS_SCALE[candidate]
 
+    if candidate in UNSUPPORTED_DSU_CAR:
+      ret.safetyConfigs[0].safetyParam |= ToyotaSafetyFlags.UNSUPPORTED_DSU.value
+
     # BRAKE_MODULE is on a different address for these cars
     if DBC[candidate][Bus.pt] == "toyota_new_mc_pt_generated":
       ret.safetyConfigs[0].safetyParam |= ToyotaSafetyFlags.ALT_BRAKE.value

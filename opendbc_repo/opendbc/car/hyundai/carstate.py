@@ -30,6 +30,9 @@ class CarState(CarStateBase):
     self.main_buttons: deque = deque([Buttons.NONE] * PREV_BUTTON_SAMPLES, maxlen=PREV_BUTTON_SAMPLES)
     self.lda_button = 0
 
+    # dp - ALKA: track previous ACC main state for rising edge detection
+    self.acc_main_prev = False
+
     self.gear_msg_canfd = "ACCELERATOR" if CP.flags & HyundaiFlags.EV else \
                           "GEAR_ALT" if CP.flags & HyundaiFlags.CANFD_ALT_GEARS else \
                           "GEAR_ALT_2" if CP.flags & HyundaiFlags.CANFD_ALT_GEARS_2 else \
@@ -193,6 +196,18 @@ class CarState(CarStateBase):
                         *create_button_events(self.main_buttons[-1], prev_main_buttons, {1: ButtonType.mainCruise}),
                         *create_button_events(self.lda_button, prev_lda_button, {1: ButtonType.lkas})]
 
+    # dp - ALKA: track lkas_on state (mirrors panda's lkas_on logic)
+    # ACC main: rising edge of SCC11["MainMode_ACC"] (matches panda's bit 0 check, only for non-longitudinal)
+    if not self.CP.openpilotLongitudinalControl:
+      # ACC main off: falling edge resets lkas_on (main switch behavior)
+      if not ret.cruiseState.available and self.acc_main_prev:
+        self.lkas_on = False
+      self.acc_main_prev = ret.cruiseState.available
+    # LKAS button: rising edge toggles (matches panda's hyundai_lkas_button_check)
+    for event in ret.buttonEvents:
+      if event.type == ButtonType.lkas and event.pressed:
+        self.lkas_on = not self.lkas_on
+
     ret.blockPcmEnable = not self.recent_button_interaction()
 
     # low speed steer alert hysteresis logic (only for cars with steer cut off above 10 m/s)
@@ -290,6 +305,19 @@ class CarState(CarStateBase):
     ret.buttonEvents = [*create_button_events(self.cruise_buttons[-1], prev_cruise_buttons, BUTTONS_DICT),
                         *create_button_events(self.main_buttons[-1], prev_main_buttons, {1: ButtonType.mainCruise}),
                         *create_button_events(self.lda_button, prev_lda_button, {1: ButtonType.lkas})]
+
+    # dp - ALKA: track lkas_on state (mirrors panda's lkas_on logic)
+    if not self.CP.openpilotLongitudinalControl:
+      cp_cruise_info = cp_cam if self.CP.flags & HyundaiFlags.CANFD_CAMERA_SCC else cp
+      acc_main = cp_cruise_info.vl["SCC_CONTROL"]["MainMode_ACC"] == 1
+      # ACC main off: falling edge resets lkas_on (main switch behavior)
+      if not acc_main and self.acc_main_prev:
+        self.lkas_on = False
+      self.acc_main_prev = acc_main
+    # LKAS button: rising edge toggles (matches panda's hyundai_lkas_button_check)
+    for event in ret.buttonEvents:
+      if event.type == ButtonType.lkas and event.pressed:
+        self.lkas_on = not self.lkas_on
 
     ret.blockPcmEnable = not self.recent_button_interaction()
 

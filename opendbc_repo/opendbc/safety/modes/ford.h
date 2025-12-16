@@ -21,6 +21,27 @@
 #define FORD_MAIN_BUS 0U
 #define FORD_CAM_BUS  2U
 
+// dp - ALKA: static variables for Ford (reset in ford_init)
+static bool ford_tja_btn_prev = false;
+static bool ford_acc_main_prev = false;
+
+// dp - ALKA: track TJA button state for Ford (toggle on rising edge)
+static void ford_tja_button_check(const bool tja_btn_pressed) {
+  if (tja_btn_pressed && !ford_tja_btn_prev) {
+    lkas_on = !lkas_on;
+  }
+  ford_tja_btn_prev = tja_btn_pressed;
+}
+
+// dp - ALKA: track ACC main state for Ford (main switch behavior)
+// Falling edge: disable lkas_on
+static void ford_acc_main_check(const bool acc_main_on_current) {
+  if (!acc_main_on_current && ford_acc_main_prev) {
+    lkas_on = false;
+  }
+  ford_acc_main_prev = acc_main_on_current;
+}
+
 static uint8_t ford_get_counter(const CANPacket_t *msg) {
   uint8_t cnt = 0;
   if (msg->addr == FORD_BrakeSysFeatures) {
@@ -155,8 +176,15 @@ static void ford_rx_hook(const CANPacket_t *msg) {
       brake_pressed = ((msg->data[0] >> 4) & 0x3U) == 2U;
 
       // Signal: CcStat_D_Actl
+      // 0=Off, 1=Denied, 2=Standby_Denied, 3=Standby, 4=Active_Que_Assist, 5=Active
       unsigned int cruise_state = msg->data[1] & 0x07U;
       bool cruise_engaged = (cruise_state == 4U) || (cruise_state == 5U);
+      // dp - ALKA: Ford ACC main on when in Standby (3) or Active states (4, 5)
+      acc_main_on = (cruise_state == 3U) || cruise_engaged;
+      // dp - ALKA: track ACC main state (main switch behavior - edge detection)
+      if (alka_allowed && ((alternative_experience & ALT_EXP_ALKA) != 0)) {
+        ford_acc_main_check(acc_main_on);
+      }
       pcm_cruise_check(cruise_engaged);
     }
   }
@@ -283,6 +311,12 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
 }
 
 static safety_config ford_init(uint16_t param) {
+  alka_allowed = true;  // dp - ALKA enabled for Ford
+
+  // dp - ALKA: reset static variables for button/main tracking
+  ford_tja_btn_prev = false;
+  ford_acc_main_prev = false;
+
   // warning: quality flags are not yet checked in openpilot's CAN parser,
   // this may be the cause of blocked messages
   static RxCheck ford_rx_checks[] = {
@@ -351,9 +385,20 @@ static safety_config ford_init(uint16_t param) {
   return ret;
 }
 
+// dp - ALKA: rx_ext_hook for TJA button tracking (bypasses RX checks)
+static void ford_rx_ext_hook(const CANPacket_t *msg) {
+  if (alka_allowed && ((alternative_experience & ALT_EXP_ALKA) != 0)) {
+    // Track TJA button (Steering_Data_FD1 0x083, bit 40 = TjaButtnOnOffPress)
+    if ((msg->addr == FORD_Steering_Data_FD1) && (msg->bus == FORD_MAIN_BUS)) {
+      ford_tja_button_check(GET_BIT(msg, 40U));
+    }
+  }
+}
+
 const safety_hooks ford_hooks = {
   .init = ford_init,
   .rx = ford_rx_hook,
+  .rx_ext = ford_rx_ext_hook,
   .tx = ford_tx_hook,
   .get_counter = ford_get_counter,
   .get_checksum = ford_get_checksum,
