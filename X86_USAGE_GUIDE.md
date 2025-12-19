@@ -324,8 +324,19 @@ echo "export ZMQ=1" >> .env
 # 设置Python路径
 echo "export PYTHONPATH=$(pwd)" >> .env
 
-# 设置OpenCL设备（可选，默认自动选择）
+# OpenCL配置（Dragonpilot默认启用OpenCL加速）
+# Dragonpilot会自动检测并使用可用的OpenCL设备，优先选择GPU设备
+# 如果GPU不可用，会尝试使用CPU设备进行AI模型推理
+# 以下环境变量可用于手动控制OpenCL行为：
+
+# 查看可用OpenCL设备（调试用）
+# echo "export OPENCL_SHOW_DEVICES=1" >> .env
+
+# 手动指定OpenCL设备（可选，默认自动选择）
 # echo "export OPENCL_DEVICE=0" >> .env
+
+# 禁用OpenCL（强制使用CPU）
+# echo "export DISABLE_OPENCL=1" >> .env
 
 # 设置UI缩放比例（可选，根据屏幕分辨率调整）
 # echo "export SCALE=2" >> .env
@@ -473,6 +484,170 @@ else:
 "
 ```
 
+### 5.1.5 相机参数设置
+
+对于自动驾驶应用，合适的相机参数设置对系统性能至关重要。USB摄像头通常需要调节参数以确保在不同光照条件下都能获得清晰的图像。
+
+#### 5.1.5.1 安装v4l2-ctl工具
+
+首先安装v4l-utils工具包，它包含了v4l2-ctl工具：
+
+```bash
+sudo apt-get install -y v4l-utils
+```
+
+#### 5.1.5.2 查看相机支持的参数
+
+使用以下命令查看摄像头支持的所有可调节参数：
+
+```bash
+# 查看摄像头设备
+v4l2-ctl --list-devices
+
+# 查看特定摄像头的详细参数
+v4l2-ctl -d /dev/video0 --list-ctrls
+
+# 查看摄像头支持的格式和分辨率
+v4l2-ctl -d /dev/video0 --list-formats-ext
+```
+
+#### 5.1.5.3 常用相机参数调节
+
+##### 曝光控制
+曝光控制是自动驾驶应用中最重要的参数之一：
+
+```bash
+# 设置自动曝光模式（推荐）
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1
+
+# 手动曝光模式（高级用户）
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=3
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=100
+
+# 查看当前曝光设置
+v4l2-ctl -d /dev/video0 --get-ctrl=exposure_auto,exposure_absolute
+```
+
+##### 白平衡调节
+白平衡确保颜色准确性：
+
+```bash
+# 自动白平衡（推荐）
+v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1
+
+# 手动白平衡（特定光照条件）
+v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=0
+v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature=4000
+
+# 查看当前白平衡设置
+v4l2-ctl -d /dev/video0 --get-ctrl=white_balance_temperature_auto,white_balance_temperature
+```
+
+##### 亮度和对比度
+优化图像质量：
+
+```bash
+# 调节亮度（范围通常为0-255）
+v4l2-ctl -d /dev/video0 --set-ctrl=brightness=128
+
+# 调节对比度（范围通常为0-255）
+v4l2-ctl -d /dev/video0 --set-ctrl=contrast=128
+
+# 调节饱和度
+v4l2-ctl -d /dev/video0 --set-ctrl=saturation=64
+
+# 调节锐度
+v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=25
+```
+
+##### 分辨率和帧率设置
+设置合适的图像尺寸和帧率：
+
+```bash
+# 设置分辨率（推荐1080p）
+v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=YUYV
+
+# 设置帧率（推荐30fps）
+v4l2-ctl -d /dev/video0 --set-ctrl=framerate=30/1
+
+# 查看当前格式设置
+v4l2-ctl -d /dev/video0 --get-fmt-video
+```
+
+#### 5.1.5.4 针对自动驾驶的推荐参数
+
+基于自动驾驶应用的特殊需求，推荐以下参数配置：
+
+##### 白天驾驶配置
+```bash
+# 白天驾驶参数设置
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1        # 自动曝光
+v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1  # 自动白平衡
+v4l2-ctl -d /dev/video0 --set-ctrl=brightness=120         # 中等亮度
+v4l2-ctl -d /dev/video0 --set-ctrl=contrast=150           # 较高对比度
+v4l2-ctl -d /dev/video0 --set-ctrl=saturation=70          # 中等饱和度
+v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=30           # 中等锐度
+```
+
+##### 夜间驾驶配置
+```bash
+# 夜间驾驶参数设置
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1        # 自动曝光
+v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1  # 自动白平衡
+v4l2-ctl -d /dev/video0 --set-ctrl=brightness=150         # 较高亮度
+v4l2-ctl -d /dev/video0 --set-ctrl=contrast=120           # 中等对比度
+v4l2-ctl -d /dev/video0 --set-ctrl=saturation=50          # 较低饱和度
+v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=20           # 较低锐度
+```
+
+#### 5.1.5.5 在Dragonpilot启动脚本中自动设置参数
+
+您可以在`launch_chffrplus.sh`中添加相机参数自动设置：
+
+```bash
+# 在USE_WEBCAM=1之后添加相机参数调节
+if [ ! -f /AGNOS ]; then
+  export USE_WEBCAM=1
+
+  # 等待摄像头设备就绪
+  sleep 2
+
+  # 相机参数调节（错误处理避免启动失败）
+  v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1 2>/dev/null || echo "曝光设置失败，使用默认值"
+  v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1 2>/dev/null || echo "白平衡设置失败，使用默认值"
+  v4l2-ctl -d /dev/video0 --set-ctrl=brightness=128 2>/dev/null || echo "亮度设置失败，使用默认值"
+  v4l2-ctl -d /dev/video0 --set-ctrl=contrast=128 2>/dev/null || echo "对比度设置失败，使用默认值"
+
+  # 设置分辨率（如果摄像头支持）
+  v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=YUYV 2>/dev/null || echo "分辨率设置失败，使用默认值"
+fi
+```
+
+#### 5.1.5.6 参数调节注意事项
+
+1. **兼容性测试**：不同摄像头支持的参数可能不同，建议先测试所有可用参数
+2. **环境适应性**：根据实际驾驶环境（白天/夜间/隧道）调整参数
+3. **性能平衡**：高分辨率和高帧率会增加计算负担，需平衡性能需求
+4. **稳定性优先**：自动驾驶应用优先考虑图像稳定性和可靠性
+
+#### 5.1.5.7 调试和故障排除
+
+如果摄像头参数调节出现问题，可以使用以下命令调试：
+
+```bash
+# 查看所有支持的参数和当前值
+v4l2-ctl -d /dev/video0 --list-ctrls-menus
+
+# 重置所有参数为默认值
+v4l2-ctl -d /dev/video0 --all
+
+# 测试摄像头效果
+ffplay /dev/video0
+
+# 检查参数设置是否生效
+v4l2-ctl -d /dev/video0 --get-ctrl=exposure_auto,white_balance_temperature_auto,brightness,contrast
+```
+
 ### 5.2 传感器配置
 
 在PC平台上，默认情况下`sensord`进程不会启动，因为PC通常没有内置的IMU（惯性测量单元）、GPS等自动驾驶所需的传感器。
@@ -517,6 +692,92 @@ export SIMULATE_SENSORS=1
 ```
 
 这会让系统使用模拟的IMU、GPS等数据进行测试。
+
+### 5.3 PANDA设备配置
+
+PANDA是Dragonpilot系统的核心硬件组件，负责与车辆CAN总线通信，接收车辆状态信息并发送控制命令。以下是PANDA设备的详细分析：
+
+#### 5.3.1 支持的PANDA设备类型
+
+在当前代码分支中，定义了以下PANDA设备类型（定义于`cereal/log.capnp`）：
+
+| 设备类型 | 描述 | 支持状态 |
+|---------|------|---------|
+| unknown | 未知设备 | 不支持 |
+| whitePanda | 白色PANDA | 不支持（Legacy设备） |
+| greyPanda | 灰色PANDA | 不支持（Legacy设备） |
+| blackPanda | 黑色PANDA | 不支持（Legacy设备） |
+| pedal | 踏板设备 | 不支持 |
+| uno | 第一代设备 | 不支持 |
+| dos | 第二代设备 | 不支持 |
+| redPanda | 红色PANDA | 支持 |
+| redPandaV2 | 红色PANDA V2 | 支持 |
+| tres | 第三代设备 | 支持 |
+| cuatro | 第四代设备 | 支持 |
+
+#### 5.3.2 当前分支的实际支持情况
+
+虽然代码中定义了11种PANDA设备类型，但在当前分支中，实际仅支持基于H7芯片的设备：
+
+```python
+# panda/python/__init__.py
+H7_DEVICES = [HW_TYPE_RED_PANDA, HW_TYPE_TRES, HW_TYPE_CUATRO]
+SUPPORTED_DEVICES = H7_DEVICES
+```
+
+具体支持的设备为：
+- redPanda
+- tres
+- cuatro
+
+这些设备使用STM32H7系列芯片，具有更高的性能和更丰富的功能。
+
+#### 5.3.3 Legacy设备支持状态
+
+Legacy设备（非H7芯片的设备，如whitePanda、greyPanda、blackPanda等）在当前分支中已不再支持，主要限制包括：
+
+1. **连接限制**：尝试连接Legacy设备时，会在`get_mcu_type()`方法中抛出错误：
+   ```python
+   def get_mcu_type(self) -> McuType:
+     hw_type = self.get_type()
+     if hw_type in Panda.H7_DEVICES:
+       return McuType.H7
+     raise ValueError(f"unknown HW type: {hw_type}")
+   ```
+
+2. **固件更新限制**：禁止为Legacy设备更新固件：
+   ```python
+   def flash(self, fn=None, code=None, reconnect=True):
+     # ...
+     hw_type = self.get_type()
+     if hw_type not in self.SUPPORTED_DEVICES:
+       raise RuntimeError(f"HW type {hw_type.hex()} is deprecated and can no longer be flashed.")
+   ```
+
+#### 5.3.4 PANDA设备使用注意事项
+
+1. **设备识别**：系统会自动识别连接的PANDA设备类型，并检查是否在支持列表中。
+2. **固件版本**：确保使用与当前代码分支兼容的PANDA固件版本。
+3. **连接方式**：在X86平台上，PANDA设备通常通过USB接口连接。
+4. **驱动要求**：确保系统已安装必要的USB驱动以支持PANDA设备。
+
+#### 5.3.5 查看PANDA设备信息
+
+使用以下命令可以查看连接的PANDA设备信息：
+
+```bash
+# 查看PANDA设备
+python -c "from panda import Panda; p = Panda(); print('Device type:', p.get_type()); print('Firmware version:', p.get_version()); p.close()"
+```
+
+#### 5.3.6 故障排除
+
+如果遇到PANDA设备连接问题：
+
+1. 检查设备是否为支持的H7设备类型
+2. 确认USB连接是否稳定
+3. 检查设备固件是否需要更新（仅支持H7设备）
+4. 查看系统日志以获取详细错误信息
 
 ## 6. 项目架构与X86支持
 
@@ -860,9 +1121,16 @@ Dragonpilot_c3 使用 `swaglog` 作为日志系统，提供了灵活的日志记
 
 #### 7.2.1 日志位置
 
-- **进程日志**：存储在 `/tmp/openpilot/` 目录下，以进程名命名（如 `manager.log`、`modeld.log`）
-- **系统日志**：存储在 `Paths.swaglog_root()` 目录下（通常是 `/data/log/` 或 `/tmp/openpilot/log/`）
+Dragonpilot_c3 在PC环境下使用分层的日志存储结构：
+
+- **进程临时日志**：存储在 `/tmp/openpilot/` 目录下，以进程名命名（如 `manager.log`、`modeld.log`）
+- **Swaglog系统日志**：存储在 `~/.comma/log/` 目录下（对应 `Paths.swaglog_root()`）
+- **主驾驶日志**：存储在 `~/.comma/media/0/realdata/` 目录下（对应 `Paths.log_root()`）
 - **控制台输出**：可以通过环境变量 `LOGPRINT` 控制控制台日志级别
+
+**路径说明**：
+- `~/.comma/` 是PC环境下Dragonpilot的主目录
+- 可以通过 `LOG_ROOT` 环境变量自定义主驾驶日志的存储路径
 
 #### 7.2.2 查看日志
 
@@ -876,14 +1144,55 @@ tail -f /tmp/openpilot/manager.log
 # 实时查看所有日志（使用multitail或tmux分割窗口）
 multitail /tmp/openpilot/*.log
 
-# 查看最新的系统日志文件
-ls -la $(python -c "from openpilot.system.hardware.hw import Paths; print(Paths.swaglog_root())")/swaglog.* | tail -n 5
+# 查看最新的swaglog系统日志文件
+ls -la ~/.comma/log/swaglog.* | tail -n 5
 
-# 查看系统日志内容
-tail -f $(python -c "from openpilot.system.hardware.hw import Paths; print(Paths.swaglog_root())")/swaglog.*
+# 实时查看swaglog系统日志
+tail -f ~/.comma/log/swaglog.*
+
+# 查看主驾驶日志目录
+ls -la ~/.comma/media/0/realdata/
 ```
 
-#### 7.2.3 控制日志级别
+#### 7.2.3 日志管理机制
+
+Dragonpilot_c3 使用两种主要的日志管理机制：
+
+##### Swaglog系统日志管理
+- **轮换策略**：
+  - 时间间隔：每60秒自动创建新日志文件
+  - 文件大小：单个文件最大256KB
+  - 保留数量：默认保留2500个日志文件
+- **文件命名**：采用序号递增命名（如 `swaglog.0000000001`、`swaglog.0000000002`）
+
+##### 主驾驶日志管理
+- **分段机制**：
+  - 默认60秒一个日志段（可通过 `LOGGERD_SEGMENT_LENGTH` 环境变量修改）
+  - 基于时间和摄像头状态的双重轮换机制
+- **编码配置**：
+  - PC环境使用 `BIG_BOX_LOSSLESS` 编码（无损压缩）
+  - 支持高效的Cereal序列化格式
+
+#### 7.2.4 环境变量配置
+
+可以通过以下环境变量控制日志系统行为：
+
+```bash
+# 自定义主驾驶日志存储路径
+export LOG_ROOT="/path/to/custom/logs"
+
+# 控制控制台日志级别（debug/info/warning/error）
+export LOGPRINT="debug"
+
+# 测试模式下修改日志段长度（秒）
+export LOGGERD_TEST=1
+export LOGGERD_SEGMENT_LENGTH=30
+
+# 为多实例部署添加路径前缀
+export OPENPILOT_PREFIX="_instance1"
+```
+
+#### 7.2.5 控制日志级别
 
 ```bash
 # 设置控制台日志级别为debug
@@ -1049,8 +1358,15 @@ export LITE=1
 
 #### 8.1.1 OpenCL加速优化
 
-OpenCL加速是提升AI模型推理性能的关键。Dragonpilot_c3通过`common/clutil.cc`中的代码管理OpenCL设备和计算：
+**Dragonpilot默认启用OpenCL加速**，系统会自动检测并使用可用的OpenCL设备进行AI模型推理。以下是OpenCL的默认配置逻辑：
 
+**默认行为：**
+- **自动设备检测**：Dragonpilot启动时会自动扫描所有可用的OpenCL平台和设备
+- **优先选择GPU**：系统优先选择GPU设备（`CL_DEVICE_TYPE_GPU`）进行AI模型推理
+- **降级机制**：如果GPU不可用，会自动降级使用CPU设备（`CL_DEVICE_TYPE_CPU`）
+- **错误处理**：如果找不到任何OpenCL设备，系统会报错并终止程序
+
+**设备选择逻辑（common/clutil.cc）：**
 ```cpp
 // OpenCL设备检测逻辑（common/clutil.cc）
 cl_device_id cl_get_device_id(cl_device_type device_type) {
@@ -1072,6 +1388,19 @@ cl_device_id cl_get_device_id(cl_device_type device_type) {
   assert(0);
   return nullptr;
 }
+```
+
+**验证OpenCL是否正常工作：**
+```bash
+# 检查系统OpenCL设备
+clinfo
+
+# 在Dragonpilot中查看设备信息
+python -c "from openpilot.common.clutil import get_cl_device; get_cl_device()"
+
+# 查看OpenCL设备详细信息（调试用）
+export OPENCL_SHOW_DEVICES=1
+./launch_openpilot.sh
 ```
 
 **优化建议：**
@@ -1717,6 +2046,184 @@ cat system/sensord/sensord.py | grep -A 10 "simulate"
 - 驾驶过程中请始终保持专注，随时准备接管车辆
 - 遵守当地交通法规
 - 在PC上测试时，确保在安全的环境中进行
+
+## 13. 桌面启动图标和开机自动启动
+
+为了方便日常使用，您可以创建桌面启动图标和设置开机自动启动。
+
+### 13.1 创建桌面启动图标
+
+#### 方法一：手动创建.desktop文件
+
+1. **创建桌面启动文件**：
+```bash
+# 创建桌面启动文件
+cat > ~/Desktop/dragonpilot.desktop << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dragonpilot C3
+Comment=Dragonpilot C3 Autonomous Driving Assistant
+Exec=/bin/bash -c "cd /home/ubuntu/dragonpilot && ./launch_chffrplus.sh"
+Icon=/home/ubuntu/dragonpilot/selfdrive/assets/icon.png
+Categories=Utility;
+Terminal=true
+StartupNotify=false
+EOF
+
+# 路径已设置为实际路径，无需替换
+
+# 设置可执行权限
+chmod +x ~/Desktop/dragonpilot.desktop
+```
+
+2. **使用项目图标**（如果可用）：
+```bash
+# 检查是否有图标文件
+if [ -f "/home/ubuntu/dragonpilot/selfdrive/assets/icon.png" ]; then
+    echo "使用项目图标文件"
+else
+    # 使用系统默认图标
+    sed -i "s|Icon=/home/ubuntu/dragonpilot/selfdrive/assets/icon.png|Icon=system-run|g" ~/Desktop/dragonpilot.desktop
+fi
+```
+
+#### 方法二：使用图形界面创建
+
+1. 右键点击桌面，选择"创建启动器"或"创建快捷方式"
+2. 填写以下信息：
+   - **名称**: Dragonpilot C3
+   - **命令**: `/bin/bash -c "cd /home/ubuntu/dragonpilot && ./launch_chffrplus.sh"`
+- **工作目录**: /home/ubuntu/dragonpilot
+   - **图标**: 选择项目中的图标文件或系统图标
+
+### 13.2 设置开机自动启动
+
+#### 方法一：使用systemd服务（推荐）
+
+1. **创建systemd服务文件**：
+```bash
+# 创建服务文件
+sudo tee /etc/systemd/system/dragonpilot.service > /dev/null << EOF
+[Unit]
+Description=Dragonpilot C3 Autonomous Driving Assistant
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$(pwd)
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/$USER/.Xauthority
+ExecStart=$(pwd)/launch_chffrplus.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+2. **启用并启动服务**：
+```bash
+# 重新加载systemd配置
+sudo systemctl daemon-reload
+
+# 启用开机自启动
+sudo systemctl enable dragonpilot.service
+
+# 立即启动服务
+sudo systemctl start dragonpilot.service
+
+# 检查服务状态
+sudo systemctl status dragonpilot.service
+```
+
+#### 方法二：使用桌面环境自启动
+
+1. **GNOME桌面环境**：
+```bash
+# 创建自启动文件
+mkdir -p ~/.config/autostart
+cat > ~/.config/autostart/dragonpilot.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=Dragonpilot C3
+Exec=/bin/bash -c "cd $(pwd) && ./launch_chffrplus.sh"
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+```
+
+2. **KDE桌面环境**：
+```bash
+# 创建自启动脚本
+cat > ~/.config/autostart/dragonpilot.sh << EOF
+#!/bin/bash
+cd $(pwd)
+./launch_chffrplus.sh
+EOF
+chmod +x ~/.config/autostart/dragonpilot.sh
+
+# 添加到KDE自启动
+kwriteconfig5 --file kwinrc --group Autostart --key dragonpilot "$(pwd)/launch_chffrplus.sh"
+```
+
+#### 方法三：使用crontab（简单方法）
+
+```bash
+# 编辑当前用户的crontab
+crontab -e
+
+# 添加以下行（在@reboot行）：
+@reboot sleep 30 && cd /home/ubuntu/dragonpilot && ./launch_chffrplus.sh
+```
+
+### 13.3 启动脚本优化
+
+为了更好的桌面集成，您可以创建一个优化的启动脚本：
+
+```bash
+# 创建优化的启动脚本
+cat > start_dragonpilot.sh << 'EOF'
+#!/bin/bash
+
+# 设置工作目录
+cd "$(dirname "$0")"
+
+# 检查是否在桌面环境中
+if [ -z "$DISPLAY" ]; then
+    echo "错误：未检测到桌面环境"
+    echo "请确保在图形界面中运行此脚本"
+    exit 1
+fi
+
+# 设置环境变量
+export PYTHONPATH="$(pwd)"
+export ZMQ=1
+
+# 检查虚拟环境
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
+# 启动Dragonpilot
+echo "启动Dragonpilot C3..."
+./launch_chffrplus.sh
+EOF
+
+chmod +x start_dragonpilot.sh
+```
+
+### 13.4 注意事项
+
+1. **权限问题**：确保启动脚本有执行权限
+2. **路径问题**：使用绝对路径或正确的工作目录
+3. **环境变量**：确保必要的环境变量已设置
+4. **依赖检查**：启动前检查所有依赖是否已安装
+5. **日志记录**：建议将输出重定向到日志文件以便调试
 
 ---
 

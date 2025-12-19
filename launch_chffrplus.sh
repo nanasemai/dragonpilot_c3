@@ -104,6 +104,24 @@ function launch {
     agnos_init
   fi
 
+  # UI scaling for 1920x1080 PC display
+  export SCALE=0.9
+  export BIG=1
+
+  # Camera configuration for PC environment
+  # Enable USB webcam support for PC
+  if [ ! -f /AGNOS ]; then
+    export USE_WEBCAM=1
+    # Optional: specify camera devices (uncomment and adjust as needed)
+    export ROAD_CAM=0    # Road camera device (default: /dev/video0)
+    # export DRIVER_CAM=1  # Driver camera device
+    # export WIDE_CAM=2    # Wide angle camera device
+
+    # Disable unused cameras
+    export DISABLE_DRIVER=1  # 禁用驾驶员摄像头
+    export DISABLE_WIDE=1    # 禁用广角摄像头
+  fi
+
   # write tmux scrollback to a file
   tmux capture-pane -pq -S-1000 > /tmp/launch_log
 
