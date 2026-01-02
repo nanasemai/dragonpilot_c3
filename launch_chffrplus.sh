@@ -4,6 +4,96 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 source "$DIR/launch_env.sh"
 
+# Load environment variables from .env file if it exists
+if [ -f "$DIR/.env" ]; then
+  source "$DIR/.env"
+  echo "Loaded environment variables from .env file"
+else
+  # Set default environment variables if .env file doesn't exist
+  echo "No .env file found, setting default environment variables..."
+  echo "Run 'nana-guide/setup_device_env.sh' to create a complete .env configuration"
+  
+  # Core environment variables
+  export ZMQ=1                    # Enable ZMQ for IPC
+  export USE_WEBCAM=1             # Enable webcam support
+  export PYTHONPATH="$PWD"        # Set Python path
+  export LOG_READABLE="1"         # Enable human-readable log format
+  export IMAGE="0"                # Required for CL device image handling
+  
+  # Camera configuration
+  export ROAD_CAM="0"             # Default road camera setting
+  export DRIVER_CAM=""            # Disable driver camera
+  export WIDE_CAM=""              # Disable wide camera
+  
+  # GPU configuration (users can manually customize in .env)
+  # export DEV="GPU"               # Use GPU for model inference
+  # export DEV="AMD"               # Use AMD GPU for model inference
+  # export DEV="NVIDIA"            # Use NVIDIA GPU for model inference
+fi
+
+# PC environment detection and configuration
+if [ ! -f /TICI ]; then
+  echo "Detected PC environment, applying PC-specific configuration..."
+
+  # Set default paths if not already set by .env
+  if [ -z "$PARAMS_ROOT" ]; then
+    export PARAMS_ROOT="$PWD/data/params"
+  fi
+  if [ -z "$SWAGLOG_ROOT" ]; then
+    export SWAGLOG_ROOT="$PWD/data/log"
+  fi
+  if [ -z "$LOG_ROOT" ]; then
+    export LOG_ROOT="$PWD/data/realdata"
+  fi
+  if [ -z "$MODEL_ROOT" ]; then
+    export MODEL_ROOT="$PWD/data/models"
+  fi
+  if [ -z "$CRASH_LOG_ROOT" ]; then
+    export CRASH_LOG_ROOT="$PWD/data/crashes"
+  fi
+  if [ -z "$MAPD_ROOT" ]; then
+    export MAPD_ROOT="$PWD/data/osm"
+  fi
+  if [ -z "$COMMA_CACHE" ]; then
+    export COMMA_CACHE="$PWD/data/cache"
+  fi
+  if [ -z "$PERSIST_ROOT" ]; then
+    export PERSIST_ROOT="$PWD/data/persist"
+  fi
+  if [ -z "$STATS_ROOT" ]; then
+    export STATS_ROOT="$PWD/data/stats"
+  fi
+  if [ -z "$CONFIG_ROOT" ]; then
+    export CONFIG_ROOT="$PWD/data/config"
+  fi
+
+  # Create all required directories
+  echo "Creating required directories..."
+  mkdir -p "$PARAMS_ROOT/d" /tmp/openpilot
+  mkdir -p "$SWAGLOG_ROOT"
+  mkdir -p "$LOG_ROOT"
+  mkdir -p "$MODEL_ROOT"
+  mkdir -p "$CRASH_LOG_ROOT"
+  mkdir -p "$MAPD_ROOT"
+  mkdir -p "$COMMA_CACHE"
+  mkdir -p "$PERSIST_ROOT"
+  mkdir -p "$STATS_ROOT"
+  mkdir -p "$CONFIG_ROOT"
+
+  # Set default parameters if not already set
+  if [ ! -f "$PARAMS_ROOT/d/LanguageSetting" ]; then
+    echo -n "main_en" > "$PARAMS_ROOT/d/LanguageSetting"
+  fi
+
+  # Set HardwareC3xLite to 1 by default (forced)
+  echo "1" > "$PARAMS_ROOT/d/HardwareC3xLite"
+
+  # Set DisableDM to 1 by default (forced)
+  echo "1" > "$PARAMS_ROOT/d/DisableDM"
+
+  echo "PC environment configuration completed successfully!"
+fi
+
 function agnos_init {
   # TODO: move this to agnos
   sudo rm -f /data/etc/NetworkManager/system-connections/*.nmmeta

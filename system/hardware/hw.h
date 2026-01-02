@@ -29,6 +29,27 @@ namespace Path {
     return Hardware::PC() ? Path::comma_home() + "/media/0/realdata" : "/data/media/0/realdata";
   }
 
+  inline std::string swaglog_root() {
+    if (const char *env = getenv("SWAGLOG_ROOT")) {
+      return env;
+    }
+    return Hardware::PC() ? Path::comma_home() + "/log" : "/data/log";
+  }
+
+  inline std::string crash_log_root() {
+    if (const char *env = getenv("CRASH_LOG_ROOT")) {
+      return env;
+    }
+    return Hardware::PC() ? Path::comma_home() + "/community/crashes" : "/data/community/crashes";
+  }
+
+  inline std::string mapd_root() {
+    if (const char *env = getenv("MAPD_ROOT")) {
+      return env;
+    }
+    return Hardware::PC() ? Path::comma_home() + "/media/0/osm" : "/data/media/0/osm";
+  }
+
   inline std::string params() {
     return util::getenv("PARAMS_ROOT", Hardware::PC() ? (Path::comma_home() + "/params") : "/data/params");
   }
@@ -55,4 +76,11 @@ namespace Path {
      return "/dev/shm";
     #endif
  }
+
+  inline std::string model_root() {
+    if (const char *env = getenv("MODEL_ROOT")) {
+      return env;
+    }
+    return Hardware::PC() ? Path::comma_home() + "/media/0/models" : "/data/media/0/models";
+  }
 }  // namespace Path

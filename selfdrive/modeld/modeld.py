@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import os
 from openpilot.system.hardware import TICI
-os.environ['DEV'] = 'QCOM' if TICI else 'LLVM'
+os.environ['DEV'] = 'QCOM' if TICI else 'CL'
 USBGPU = "USBGPU" in os.environ
 if USBGPU:
   os.environ['DEV'] = 'AMD'
   os.environ['AMD_IFACE'] = 'USB'
+AMD = os.environ.get('DEV') == 'AMD'
 from tinygrad.tensor import Tensor
 from tinygrad.dtype import dtypes
 import time
@@ -31,6 +32,9 @@ from openpilot.selfdrive.modeld.constants import ModelConstants, Plan
 from openpilot.selfdrive.modeld.models.commonmodel_pyx import DrivingModelFrame, CLContext
 from openpilot.selfdrive.modeld.runners.tinygrad_helpers import qcom_tensor_from_opencl_address
 
+# 添加设备类型日志
+from tinygrad.device import Device
+cloudlog.info(f"当前使用的设备类型: {Device.DEFAULT}")
 
 PROCESS_NAME = "selfdrive.modeld.modeld"
 SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
@@ -90,6 +94,16 @@ class ModelState:
       self.vision_input_names = list(self.vision_input_shapes.keys())
       self.vision_output_slices = vision_metadata['output_slices']
       vision_output_size = vision_metadata['output_shapes']['outputs'][1]
+
+    # 确定当前使用的后端类型（只打印一次）
+    device_type = "CPU"
+    if os.environ.get('DEV') == 'CL':
+      device_type = "CL GPU"
+    elif TICI and not USBGPU:
+      device_type = "QCOM GPU"
+    elif USBGPU or AMD:
+      device_type = "AMD GPU"
+    cloudlog.info(f"使用{device_type}后端运行模型")
 
     with open(POLICY_METADATA_PATH, 'rb') as f:
       policy_metadata = pickle.load(f)
