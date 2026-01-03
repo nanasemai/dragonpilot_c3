@@ -115,6 +115,286 @@
     </message>
 </context>
 <context>
+    <name>DPPanel</name>
+    <message>
+        <source>Toyota / Lexus</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable Door Auto Lock/Unlock</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable TSS1 SnG Mod</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use Stock Longitudinal Control</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VW / Audi / Skoda</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable MQB A0 SnG Mod</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PQ Steering Patch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Avoid EPS Lockout</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mazda</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lateral Ctrl</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Always-on Lane Keeping Assist (ALKA)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Road Edge Detection (RED)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Block lane change assist when the system detects the road edge.
+NOTE: This will show &apos;Car Detected in Blindspot&apos; warning.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LCA Speed:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off = Disable LCA
+1 mph ≈ 1.2 km/h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> mph</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Auto Lane Change after:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off = Disable Auto Lane Change.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> sec</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Longitudinal Ctrl</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use External Radar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>See https://github.com/eFiniLan/openpilot-ext-radar-addon for more information.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable Adaptive Coasting Mode (ACM)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Adaptive Coasting Mode (ACM) reduces braking to allow smoother coasting when appropriate.
+DOES NOT WORK with Experimental Mode enabled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Downhill Only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Limited to downhill driving.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Adaptive Experimental Mode (AEM)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Adaptive mode switcher between ACC and Blended based on driving context.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>UI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display Radar Tracks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rainbow Driving Path like Tesla</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Why not?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Std.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MAIN+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>OP+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MAIN-</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>OP-</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Std. - Stock behavior.
+MAIN+ - ACC MAIN on = Display ON.
+OP+ - OP enabled = Display ON.
+MAIN- - ACC MAIN on = Display OFF
+OP- - OP enabled = Display OFF.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hide HUD When Moves above:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>To prevent screen burn-in, hide Speed, MAX Speed, and Steering/DM Icons when the car moves.
+Off = Stock Behavior
+1 km/h ≈ 0.6 mph</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> km/h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Device</source>
+        <translation type="unfinished">Dispositivo</translation>
+    </message>
+    <message>
+        <source>Enable Right-Hand Drive Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Allow openpilot to obey right-hand traffic conventions on right driver seat.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable Driver Monitoring</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable Beep (Warning)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Warning</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Audible Alert Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Warning - Only emits sound when there is a warning.
+Off - Does not emit any sound at all.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Auto Shutdown In:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>0 mins = Immediately</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> mins</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lite</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Full</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>dashy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>dashy - dragonpilot&apos;s all-in-one system hub for you.
+
+Visit http://&lt;device_ip&gt;:5088 to access.
+
+Off - Turn off dashy completely.
+Lite: File Manager only.
+Full: File Manager + Live Stream.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delay Starting Loggerd for:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delays the startup of loggerd and its related processes when the device goes on-road.
+This prevents the initial moments of a drive from being recorded, protecting location privacy at the start of a trip.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> secs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset dragonpilot settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RESET</source>
+        <translation type="unfinished">REINICIAR</translation>
+    </message>
+    <message>
+        <source>Are you sure you want to reset all settings?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation type="unfinished">Formatear</translation>
+    </message>
+</context>
+<context>
     <name>DeclinePage</name>
     <message>
         <source>You must accept the Terms and Conditions in order to use openpilot.</source>
@@ -421,6 +701,17 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
     </message>
 </context>
 <context>
+    <name>ModelSelector</name>
+    <message>
+        <source>Vehicle Model:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>[AUTO DETECT]</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>MultiOptionDialog</name>
     <message>
         <source>Select</source>
@@ -625,7 +916,7 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
     <name>QObject</name>
     <message>
         <source>openpilot</source>
-        <translation>openpilot</translation>
+        <translation type="vanished">openpilot</translation>
     </message>
     <message>
         <source>now</source>
@@ -651,6 +942,14 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
             <numerusform>hace %n día</numerusform>
             <numerusform>hace %n días</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Show Last Errors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>dragonpilot</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -802,15 +1101,15 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
     </message>
     <message>
         <source>Target Branch</source>
-        <translation>Rama objetivo</translation>
+        <translation type="vanished">Rama objetivo</translation>
     </message>
     <message>
         <source>SELECT</source>
-        <translation>SELECCIONAR</translation>
+        <translation type="vanished">SELECCIONAR</translation>
     </message>
     <message>
         <source>Select a branch</source>
-        <translation>Selecione una rama</translation>
+        <translation type="vanished">Selecione una rama</translation>
     </message>
     <message>
         <source>Uninstall %1</source>
@@ -847,6 +1146,26 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
     <message>
         <source>up to date, last checked %1</source>
         <translation>actualizado, último chequeo %1</translation>
+    </message>
+    <message>
+        <source>Onroad/Offroad Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go Offroad</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Are you sure you want to switch mode?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CONFIRM</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go Onroad</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1037,13 +1356,11 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
         <translation>Graba y almacena el audio del micrófono mientras conduces. El audio se incluirá en el video de la cámara del tablero en comma connect.</translation>
     </message>
     <message>
-        <source>Record Audio Feedback with LKAS button</source>
+        <source>Disable Logging</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Press the LKAS button to record and share driving feedback with the openpilot team. When this toggle is disabled, the button acts as a bookmark button. The event will be highlighted in comma connect and the segment will be preserved on your device&apos;s storage.
-
-Note that this feature is only compatible with select cars.</source>
+        <source>Disable Updates</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

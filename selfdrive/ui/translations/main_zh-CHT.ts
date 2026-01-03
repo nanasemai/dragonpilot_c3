@@ -375,7 +375,7 @@ Off - Does not emit any sound at all.</source>
     </message>
     <message>
         <source>Use USB Serial Radar</source>
-        <translation>Use USB Serial Radar</translation>
+        <translation type="vanished">Use USB Serial Radar</translation>
     </message>
     <message>
         <source>Lite</source>
