@@ -1,19 +1,21 @@
 FROM ubuntu:24.04
 
-ENV WORKDIR=/tmp/panda/
 ENV PYTHONUNBUFFERED=1
-ENV PATH="$WORKDIR/.venv/bin:$PATH"
-
-WORKDIR $WORKDIR
+ENV PYTHONPATH=/tmp/pythonpath
 
 # deps install
-COPY pyproject.toml __init__.py setup.sh $WORKDIR
-RUN mkdir -p $WORKDIR/python/ && touch $WORKDIR/__init__.py
-RUN apt-get update && apt-get install -y --no-install-recommends sudo && DEBIAN_FRONTEND=noninteractive $WORKDIR/setup.sh
+COPY pyproject.toml __init__.py setup.sh /tmp/
+COPY python/__init__.py /tmp/python/
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends sudo && /tmp/setup.sh
 
-# second pass for the opendbc moving tag
-ARG CACHEBUST=1
-RUN DEBIAN_FRONTEND=noninteractive $WORKDIR/setup.sh
+COPY pyproject.toml __init__.py $PYTHONPATH/panda/
+COPY python/__init__.py $PYTHONPATH/panda/python/
+RUN pip3 install --break-system-packages --no-cache-dir $PYTHONPATH/panda/[dev]
 
-RUN git config --global --add safe.directory $WORKDIR/panda
-COPY . $WORKDIR
+RUN git config --global --add safe.directory $PYTHONPATH/panda
+
+# for Jenkins
+COPY README.md panda.tar.* /tmp/
+RUN mkdir -p /tmp/pythonpath/panda && \
+    tar -xvf /tmp/panda.tar.gz -C /tmp/pythonpath/panda/ || true

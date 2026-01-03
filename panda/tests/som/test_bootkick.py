@@ -4,7 +4,7 @@ import pytest
 from opendbc.car.structs import CarParams
 from panda import Panda, PandaJungle
 
-PANDA_SERIAL = "300008001851333037333932"
+PANDA_SERIAL = "28002d000451323431333839"
 JUNGLE_SERIAL = "26001c001451313236343430"
 
 OBDC_PORT = 1
