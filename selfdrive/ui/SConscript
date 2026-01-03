@@ -26,8 +26,9 @@ Export('widgets')
 qt_libs = [widgets, qt_util] + base_libs
 
 qt_src = ["main.cc", "ui.cc", "qt/sidebar.cc", "qt/body.cc",
+          "qt/offroad/model_selector.cc",
           "qt/window.cc", "qt/home.cc", "qt/offroad/settings.cc",
-          "qt/offroad/software_settings.cc", "qt/offroad/developer_panel.cc", "qt/offroad/onboarding.cc",
+          "qt/offroad/software_settings.cc", "qt/offroad/developer_panel.cc", "qt/offroad/onboarding.cc", "qt/offroad/dp_panel.cc",
           "qt/offroad/driverview.cc", "qt/offroad/experimental_mode.cc", "qt/offroad/firehose.cc",
           "qt/onroad/onroad_home.cc", "qt/onroad/annotated_camera.cc", "qt/onroad/model.cc",
           "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/driver_monitoring.cc", "qt/onroad/hud.cc"]
@@ -63,14 +64,8 @@ if GetOption('extras'):
   qt_src.remove("main.cc")  # replaced by test_runner
   qt_env.Program('tests/test_translations', [asset_obj, 'tests/test_runner.cc', 'tests/test_translations.cc'] + qt_src, LIBS=qt_libs)
 
-  qt_env.SharedLibrary("qt/python_helpers", ["qt/qt_window.cc"], LIBS=qt_libs)
-
-  # setup
-  qt_env.Program("qt/setup/setup", ["qt/setup/setup.cc", asset_obj],
-                 LIBS=qt_libs + ['curl', 'common'])
-
+  # build installers
   if arch != "Darwin":
-    # build installers
     raylib_env = env.Clone()
     raylib_env['LIBPATH'] += [f'#third_party/raylib/{arch}/']
     raylib_env['LINKFLAGS'].append('-Wl,-strip-debug')
@@ -102,7 +97,3 @@ if GetOption('extras'):
       f = raylib_env.Program(f"installer/installers/installer_{name}", [obj, cont, inter], LIBS=raylib_libs)
       # keep installers small
       assert f[0].get_size() < 1900*1e3, f[0].get_size()
-
-# build watch3
-if arch in ['x86_64', 'aarch64', 'Darwin'] or GetOption('extras'):
-  qt_env.Program("watch3", ["watch3.cc"], LIBS=qt_libs + ['common', 'msgq', 'visionipc'])

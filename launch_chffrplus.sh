@@ -117,6 +117,25 @@ function agnos_init {
   fi
 }
 
+no_amp() {
+  output=$(i2cget -y 0 0x10 0x00 2>/dev/null)
+  if [ -z "$output" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function check_device_mode {
+  if no_amp; then
+    echo "O3 Lite Mode"
+    export LITE=1
+    export DISABLE_DRIVER=1
+  else
+    echo "C3 Mode"
+  fi
+}
+
 function launch {
   # Remove orphaned git lock if it exists on boot
   [ -f "$DIR/.git/index.lock" ] && rm -f $DIR/.git/index.lock
@@ -161,6 +180,7 @@ function launch {
 
   # hardware specific init
   if [ -f /AGNOS ]; then
+    check_device_mode
     agnos_init
   fi
 

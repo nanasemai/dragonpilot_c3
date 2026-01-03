@@ -12,6 +12,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
 from openpilot.system.hardware import HARDWARE, PC
 from openpilot.system.hardware.hw import Paths
 from openpilot.common.swaglog import cloudlog
+import os
 
 
 UNREGISTERED_DONGLE_ID = "UnregisteredDevice"
@@ -48,6 +49,9 @@ def register(show_spinner=False) -> str | None:
       spinner = Spinner()
       spinner.update("registering device")
 
+    if os.getenv("LITE"):
+      params.put("DongleId", UNREGISTERED_DONGLE_ID)
+      return dongle_id
     # Create registration token, in the future, this key will make JWTs directly
     with open(Paths.persist_root()+"/comma/id_rsa.pub") as f1, open(Paths.persist_root()+"/comma/id_rsa") as f2:
       public_key = f1.read()
@@ -58,11 +62,16 @@ def register(show_spinner=False) -> str | None:
     start_time = time.monotonic()
     imei1: str | None = None
     imei2: str | None = None
+    count = 0
     while imei1 is None and imei2 is None:
       try:
         imei1, imei2 = HARDWARE.get_imei(0), HARDWARE.get_imei(1)
       except Exception:
         cloudlog.exception("Error getting imei, trying again...")
+        count += 1
+        if count > 10:
+          params.put("DongleId", UNREGISTERED_DONGLE_ID)
+          return dongle_id
         time.sleep(1)
 
       if time.monotonic() - start_time > 60 and show_spinner:
@@ -74,7 +83,7 @@ def register(show_spinner=False) -> str | None:
       try:
         register_token = jwt.encode({'register': True, 'exp': datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1)}, private_key, algorithm='RS256')
         cloudlog.info("getting pilotauth")
-        resp = api_get("v2/pilotauth/", method='POST', timeout=15,
+        resp = api_get("v2/pilotauth/", method='POST', timeout=5,
                        imei=imei1, imei2=imei2, serial=serial, public_key=public_key, register_token=register_token)
 
         if resp.status_code in (402, 403):

@@ -23,7 +23,7 @@ class CarInterface(CarInterfaceBase):
   RadarInterface = RadarInterface
 
   @staticmethod
-  def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, is_release, docs) -> structs.CarParams:
+  def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, is_release, dp_params, docs) -> structs.CarParams:
     ret.brand = "hyundai"
 
     # "LKA steering" if LKAS or LKAS_ALT messages are seen coming from the camera.
@@ -151,6 +151,13 @@ class CarInterface(CarInterfaceBase):
     # TODO: Optima Hybrid 2017 uses a different SCC12 checksum
     if candidate in (CAR.KIA_OPTIMA_H,):
       ret.dashcamOnly = True
+
+    # w/ SMDPS, allow steering to 0
+    if 0x2AA in fingerprint[0]:
+      ret.minSteerSpeed = 0.
+      print("----------------------------------------------")
+      print("dragonpilot: SMDPS detected!")
+      print("----------------------------------------------")
 
     return ret
 

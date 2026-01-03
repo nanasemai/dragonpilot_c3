@@ -26,10 +26,6 @@ MAX_CTRL_SPEED = (V_CRUISE_MAX + 4) * CV.KPH_TO_MS
 ACCEL_MAX = 2.0
 ACCEL_MIN = -3.5
 
-# ISO 11270
-ISO_LATERAL_ACCEL = 3.0  # m/s^2
-ISO_LATERAL_JERK = 5.0  # m/s^3
-
 TORQUE_PARAMS_PATH = os.path.join(BASEDIR, 'torque_data/params.toml')
 TORQUE_OVERRIDE_PATH = os.path.join(BASEDIR, 'torque_data/override.toml')
 TORQUE_SUBSTITUTE_PATH = os.path.join(BASEDIR, 'torque_data/substitute.toml')
@@ -134,11 +130,11 @@ class CarInterfaceBase(ABC):
     """
     Parameters essential to controlling the car may be incomplete or wrong without FW versions or fingerprints.
     """
-    return cls.get_params(candidate, gen_empty_fingerprint(), list(), False, False, False)
+    return cls.get_params(candidate, gen_empty_fingerprint(), list(), False, False, 0, False)
 
   @classmethod
   def get_params(cls, candidate: str, fingerprint: dict[int, dict[int, int]], car_fw: list[structs.CarParams.CarFw],
-                 alpha_long: bool, is_release: bool, docs: bool) -> structs.CarParams:
+                 alpha_long: bool, is_release: bool, dp_params: int, docs: bool) -> structs.CarParams:
     ret = CarInterfaceBase.get_std_params(candidate)
 
     platform = PLATFORMS[candidate]
@@ -151,7 +147,7 @@ class CarInterfaceBase(ABC):
     ret.tireStiffnessFactor = platform.config.specs.tireStiffnessFactor
     ret.flags |= int(platform.config.flags)
 
-    ret = cls._get_params(ret, candidate, fingerprint, car_fw, alpha_long, is_release, docs)
+    ret = cls._get_params(ret, candidate, fingerprint, car_fw, alpha_long, is_release, dp_params, docs)
 
     # Vehicle mass is published curb weight plus assumed payload such as a human driver; notCars have no assumed payload
     if not ret.notCar:
@@ -166,7 +162,7 @@ class CarInterfaceBase(ABC):
   @staticmethod
   @abstractmethod
   def _get_params(ret: structs.CarParams, candidate, fingerprint: dict[int, dict[int, int]],
-                  car_fw: list[structs.CarParams.CarFw], alpha_long: bool, is_release: bool, docs: bool) -> structs.CarParams:
+                  car_fw: list[structs.CarParams.CarFw], alpha_long: bool, is_release: bool, dp_params: int, docs: bool) -> structs.CarParams:
     raise NotImplementedError
 
   @staticmethod
@@ -386,6 +382,7 @@ INTERFACE_ATTR_FILE = {
 }
 
 # interface-specific helpers
+
 
 def get_interface_attr(attr: str, combine_brands: bool = False, ignore_none: bool = False) -> dict[str | StrEnum, Any]:
   # read all the folders in opendbc/car and return a dict where:

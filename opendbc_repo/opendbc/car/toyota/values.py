@@ -56,11 +56,15 @@ class ToyotaSafetyFlags(IntFlag):
   STOCK_LONGITUDINAL = (2 << 8)
   LTA = (4 << 8)
   SECOC = (8 << 8)
+  LOCK_CTRL = (16 << 8)
+  LONG_FILTER = (32 << 8)
 
 
 class ToyotaFlags(IntFlag):
   # Detected flags
   HYBRID = 1
+  # use legacy id
+  SDSU = 2
   DISABLE_RADAR = 4
 
   # Static flags
@@ -76,6 +80,13 @@ class ToyotaFlags(IntFlag):
   # these cars can utilize 2.0 m/s^2
   RAISED_ACCEL_LIMIT = 1024
   SECOC = 2048
+
+  ALKA = 2 ** 12
+  LOCK_CTRL = 2 ** 13
+  TSS1_SNG = 2 ** 14
+  RADAR_FILTER = 2 ** 15
+  DSU_BYPASS = 2 ** 16
+  ZSS = 2 ** 17
 
 
 def dbc_dict(pt, radar):
@@ -290,7 +301,7 @@ class CAR(Platforms):
     CarSpecs(mass=4372. * CV.LB_TO_KG, wheelbase=2.68, steerRatio=16.88, tireStiffnessFactor=0.5533),
   )
   TOYOTA_YARIS = ToyotaSecOCPlatformConfig(
-    [ToyotaCommunityCarDocs("Toyota Yaris (Non-US only) 2023", min_enable_speed=MIN_ACC_SPEED)],
+    [ToyotaCommunityCarDocs("Toyota Yaris (Non-US only) 2020, 2023", min_enable_speed=MIN_ACC_SPEED)],
     CarSpecs(mass=1170, wheelbase=2.55, steerRatio=14.80, tireStiffnessFactor=0.5533),
     flags=ToyotaFlags.RADAR_ACC,
   )
@@ -399,7 +410,7 @@ class CAR(Platforms):
 
 # (addr, cars, bus, 1/freq*100, vl)
 STATIC_DSU_MSGS = [
-  (0x128, (CAR.TOYOTA_PRIUS, CAR.TOYOTA_RAV4H, CAR.LEXUS_RX, CAR.LEXUS_NX, CAR.TOYOTA_RAV4, CAR.TOYOTA_COROLLA, CAR.TOYOTA_AVALON), \
+  (0x128, (CAR.TOYOTA_PRIUS, CAR.TOYOTA_RAV4H, CAR.LEXUS_RX, CAR.LEXUS_NX, CAR.TOYOTA_RAV4, CAR.TOYOTA_COROLLA, CAR.TOYOTA_AVALON),
                                                                                                                       1, 3, b'\xf4\x01\x90\x83\x00\x37'),
   (0x128, (CAR.TOYOTA_HIGHLANDER, CAR.TOYOTA_SIENNA, CAR.LEXUS_CTH, CAR.LEXUS_ES), 1,   3, b'\x03\x00\x20\x00\x00\x52'),
   (0x141, (CAR.TOYOTA_PRIUS, CAR.TOYOTA_RAV4H, CAR.LEXUS_RX, CAR.LEXUS_NX, CAR.TOYOTA_RAV4, CAR.TOYOTA_COROLLA, CAR.TOYOTA_HIGHLANDER, CAR.TOYOTA_AVALON,

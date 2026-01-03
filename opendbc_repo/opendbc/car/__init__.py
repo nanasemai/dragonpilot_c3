@@ -77,6 +77,7 @@ def scale_tire_stiffness(mass, wheelbase, center_to_front, tire_stiffness_factor
 
 DbcDict = dict[StrEnum, str]
 
+
 class Bus(StrEnum):
   pt = auto()
   cam = auto()
@@ -90,6 +91,7 @@ class Bus(StrEnum):
   party = auto()
   ap_party = auto()
 
+  zss = auto()
 
 def rate_limit(new_value, last_value, dw_step, up_step):
   return float(np.clip(new_value, last_value + dw_step, last_value + up_step))

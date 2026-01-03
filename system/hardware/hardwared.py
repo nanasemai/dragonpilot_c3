@@ -210,6 +210,8 @@ def hardware_thread(end_event, hw_queue) -> None:
 
   fan_controller = None
 
+  dp_device_go_off_road = False
+
   while not end_event.is_set():
     sm.update(PANDA_STATES_TIMEOUT)
 
@@ -329,19 +331,21 @@ def hardware_thread(end_event, hw_queue) -> None:
     set_offroad_alert_if_changed("Offroad_TemperatureTooHigh", show_alert, extra_text=extra_text)
 
     # *** registration check ***
-    if not PC:
-      # we enforce this for our software, but you are welcome
-      # to make a different decision in your software
-      startup_conditions["registered_device"] = PC or (params.get("DongleId") != UNREGISTERED_DONGLE_ID)
+    # if not PC:
+    #   # we enforce this for our software, but you are welcome
+    #   # to make a different decision in your software
+    #   startup_conditions["registered_device"] = PC or (params.get("DongleId") != UNREGISTERED_DONGLE_ID)
 
     # TODO: this should move to TICI.initialize_hardware, but we currently can't import params there
-    if TICI and HARDWARE.get_device_type() == "tici":
+    if TICI and HARDWARE.get_device_type() == "tici" and not os.getenv("LITE"):
       if not os.path.isfile("/persist/comma/living-in-the-moment"):
         if not Path("/data/media").is_mount():
           set_offroad_alert_if_changed("Offroad_StorageMissing", True)
 
     # Handle offroad/onroad transition
-    should_start = all(onroad_conditions.values())
+    if count % 6 == 0:
+      dp_device_go_off_road = params.get_bool("dp_device_go_off_road")
+    should_start = not dp_device_go_off_road and all(onroad_conditions.values())
     if started_ts is None:
       should_start = should_start and all(startup_conditions.values())
 

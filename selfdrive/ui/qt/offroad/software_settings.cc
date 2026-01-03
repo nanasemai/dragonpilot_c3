@@ -29,6 +29,16 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
   versionLbl = new LabelControl(tr("Current Version"), "");
   addItem(versionLbl);
 
+  // on/off road mode switch
+  onOffRoadBtn = new ButtonControl(tr("Onroad/Offroad Mode"), tr("Go Offroad"));
+  connect(onOffRoadBtn, &ButtonControl::clicked, [&]() {
+    if (ConfirmationDialog::confirm(tr("Are you sure you want to switch mode?"), tr("CONFIRM"), this)) {
+      bool val = params.getBool("dp_device_go_off_road");
+      params.putBool("dp_device_go_off_road", !val);
+    }
+  });
+  addItem(onOffRoadBtn);
+
   // download update btn
   downloadBtn = new ButtonControl(tr("Download"), tr("CHECK"));
   connect(downloadBtn, &ButtonControl::clicked, [=]() {
@@ -50,6 +60,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
   addItem(installBtn);
 
   // branch selecting
+  /*
   targetBranchBtn = new ButtonControl(tr("Target Branch"), tr("SELECT"));
   connect(targetBranchBtn, &ButtonControl::clicked, [=]() {
     auto current = params.get("GitBranch");
@@ -73,6 +84,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
   if (!params.getBool("IsTestedBranch")) {
     addItem(targetBranchBtn);
   }
+  */
 
   // uninstall button
   auto uninstallBtn = new ButtonControl(tr("Uninstall %1").arg(getBrand()), tr("UNINSTALL"));
@@ -109,6 +121,7 @@ void SoftwarePanel::updateLabels() {
   fs_watch->addParam("UpdateFailedCount");
   fs_watch->addParam("UpdaterState");
   fs_watch->addParam("UpdateAvailable");
+  fs_watch->addParam("dp_device_go_off_road");
 
   if (!isVisible()) {
     return;
@@ -117,6 +130,13 @@ void SoftwarePanel::updateLabels() {
   // updater only runs offroad
   onroadLbl->setVisible(is_onroad);
   downloadBtn->setVisible(!is_onroad);
+
+  // on/off road text change
+  if (params.getBool("dp_device_go_off_road")) {
+    onOffRoadBtn->setText(tr("Go Onroad"));
+  } else {
+    onOffRoadBtn->setText(tr("Go Offroad"));
+  }
 
   // download update
   QString updater_state = QString::fromStdString(params.get("UpdaterState"));
@@ -142,7 +162,7 @@ void SoftwarePanel::updateLabels() {
     }
     downloadBtn->setEnabled(true);
   }
-  targetBranchBtn->setValue(QString::fromStdString(params.get("UpdaterTargetBranch")));
+//  targetBranchBtn->setValue(QString::fromStdString(params.get("UpdaterTargetBranch")));
 
   // current + new versions
   versionLbl->setText(QString::fromStdString(params.get("UpdaterCurrentDescription")));

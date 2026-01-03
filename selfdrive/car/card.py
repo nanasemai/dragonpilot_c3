@@ -20,6 +20,7 @@ from opendbc.car.interfaces import CarInterfaceBase, RadarInterfaceBase
 from openpilot.selfdrive.pandad import can_capnp_to_list, can_list_to_can_capnp
 from openpilot.selfdrive.car.cruise import VCruiseHelper
 from openpilot.selfdrive.car.car_specific import MockCarState
+from opendbc.safety import ALTERNATIVE_EXPERIENCE
 
 REPLAY = "REPLAY" in os.environ
 
@@ -82,6 +83,8 @@ class Car:
 
     is_release = self.params.get_bool("IsReleaseBranch")
 
+    dp_params = 0
+
     if CI is None:
       # wait for one pandaState and one CAN packet
       print("Waiting for CAN messages...")
@@ -99,7 +102,28 @@ class Car:
         with car.CarParams.from_bytes(cached_params_raw) as _cached_params:
           cached_params = _cached_params
 
-      self.CI = get_car(*self.can_callbacks, obd_callback(self.params), alpha_long_allowed, is_release, num_pandas, cached_params)
+      if self.params.get_bool("dp_lat_alka"):
+        dp_params |= structs.DPFlags.LateralALKA
+
+      if self.params.get_bool("dp_toyota_door_auto_lock_unlock"):
+        dp_params |= structs.DPFlags.ToyotaLockCtrl
+
+      if self.params.get_bool("dp_toyota_tss1_sng"):
+        dp_params |= structs.DPFlags.ToyotaTSS1SnG
+
+      if self.params.get_bool("dp_toyota_stock_lon"):
+        dp_params |= structs.DPFlags.ToyotaStockLon
+
+      if self.params.get_bool("dp_vag_a0_sng"):
+        dp_params |= structs.DPFlags.VagA0SnG
+
+      if self.params.get_bool("dp_vag_pq_steering_patch"):
+        dp_params |= structs.DPFlags.VAGPQSteeringPatch
+
+      if self.params.get_bool("dp_vag_avoid_eps_lockout"):
+        dp_params |= structs.DPFlags.VagAvoidEPSLockout
+
+      self.CI = get_car(*self.can_callbacks, obd_callback(self.params), alpha_long_allowed, is_release, num_pandas, dp_params, cached_params)
       self.RI = interfaces[self.CI.CP.carFingerprint].RadarInterface(self.CI.CP)
       self.CP = self.CI.CP
 
@@ -109,7 +133,14 @@ class Car:
       self.CI, self.CP = CI, CI.CP
       self.RI = RI
 
+    if self.params.get_bool("dp_lon_ext_radar"):
+      from opendbc.car.radar_interface import RadarInterface
+      self.RI = RadarInterface(self.CI.CP)
+
     self.CP.alternativeExperience = 0
+    if dp_params & structs.DPFlags.LateralALKA:
+      self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.ALKA
+
     openpilot_enabled_toggle = self.params.get_bool("OpenpilotEnabledToggle")
     controller_available = self.CI.CC is not None and openpilot_enabled_toggle and not self.CP.dashcamOnly
     self.CP.passive = not controller_available or self.CP.dashcamOnly

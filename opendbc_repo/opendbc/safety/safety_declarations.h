@@ -30,6 +30,7 @@
 #define SAFETY_FAW 26U
 #define SAFETY_BODY 27U
 #define SAFETY_HYUNDAI_CANFD 28U
+#define SAFETY_PSA 31U
 #define SAFETY_RIVIAN 33U
 #define SAFETY_VOLKSWAGEN_MEB 34U
 
@@ -302,6 +303,8 @@ extern struct sample_t angle_meas;         // last 6 steer angles/curvatures
 // This flag allows AEB to be commanded from openpilot.
 #define ALT_EXP_ALLOW_AEB 16
 
+#define ALT_EXP_ALKA 1024
+
 extern int alternative_experience;
 
 // time since safety mode has been changed
@@ -340,3 +343,4 @@ extern const safety_hooks toyota_hooks;
 extern const safety_hooks volkswagen_mqb_hooks;
 extern const safety_hooks volkswagen_pq_hooks;
 extern const safety_hooks rivian_hooks;
+extern const safety_hooks psa_hooks;

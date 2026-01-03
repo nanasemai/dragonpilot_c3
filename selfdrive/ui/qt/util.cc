@@ -27,11 +27,12 @@ QString getVersion() {
 }
 
 QString getBrand() {
-  return QObject::tr("openpilot");
+  const bool lite = getenv("LITE");
+  return QObject::tr("dragonpilot") + (lite ? QString::fromStdString(" - Lite") : QString(""));
 }
 
 QString getUserAgent() {
-  return "openpilot-" + getVersion();
+  return "dragonpilot-" + getVersion();
 }
 
 std::optional<QString> getDongleId() {

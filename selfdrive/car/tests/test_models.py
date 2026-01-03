@@ -149,7 +149,7 @@ class TestCarModelBase(unittest.TestCase):
     cls.openpilot_enabled = cls.car_safety_mode_frame is not None
 
     cls.CarInterface = interfaces[cls.platform]
-    cls.CP = cls.CarInterface.get_params(cls.platform, cls.fingerprint, car_fw, alpha_long, False, docs=False)
+    cls.CP = cls.CarInterface.get_params(cls.platform, cls.fingerprint, car_fw, alpha_long, False, dp_params=0, docs=False)
     assert cls.CP
     assert cls.CP.carFingerprint == cls.platform
 
@@ -430,9 +430,7 @@ class TestCarModelBase(unittest.TestCase):
         if self.CP.carFingerprint in (HONDA.HONDA_PILOT, HONDA.HONDA_RIDGELINE) and CS.brake > 0.05:
           brake_pressed = False
       checks['brakePressed'] += brake_pressed != self.safety.get_brake_pressed_prev()
-      # TODO: remove this exception before closing commaai/opendbc#1100
-      if not (self.CP.brand == "honda" and self.CP.flags & HondaFlags.BOSCH):
-        checks['regenBraking'] += CS.regenBraking != self.safety.get_regen_braking_prev()
+      checks['regenBraking'] += CS.regenBraking != self.safety.get_regen_braking_prev()
       checks['steeringDisengage'] += CS.steeringDisengage != self.safety.get_steering_disengage_prev()
 
       if self.CP.pcmCruise:

@@ -15,6 +15,8 @@
 #include "selfdrive/ui/qt/widgets/scrollview.h"
 #include "selfdrive/ui/qt/offroad/developer_panel.h"
 #include "selfdrive/ui/qt/offroad/firehose.h"
+#include "selfdrive/ui/qt/offroad/dp_panel.h"
+#include "selfdrive/ui/qt/offroad/model_selector.h"
 
 TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   // param, title, desc, icon, restart needed
@@ -69,18 +71,25 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
       true,
     },
     {
-      "RecordAudioFeedback",
-      tr("Record Audio Feedback with LKAS button"),
-      tr("Press the LKAS button to record and share driving feedback with the openpilot team. When this toggle is disabled, the button acts as a bookmark button. The event will be highlighted in comma connect and the segment will be preserved on your device's storage.\n\nNote that this feature is only compatible with select cars."),
-      "../assets/icons/microphone.png",
-      false,
-    },
-    {
       "IsMetric",
       tr("Use Metric System"),
       tr("Display speed in km/h instead of mph."),
       "../assets/icons/metric.png",
       false,
+    },
+    {
+      "DisableLogging",
+      tr("Disable Logging"),
+      "",
+      "../assets/offroad/icon_empty.svg",
+      true,
+    },
+    {
+      "DisableUpdates",
+      tr("Disable Updates"),
+      "",
+      "../assets/offroad/icon_empty.svg",
+      true,
     },
   };
 
@@ -95,8 +104,11 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   // set up uiState update for personality setting
   QObject::connect(uiState(), &UIState::uiUpdate, this, &TogglesPanel::updateState);
-
+  const bool lite = getenv("LITE");
   for (auto &[param, title, desc, icon, needs_restart] : toggle_defs) {
+    if ((param == "AlwaysOnDM" || param == "RecordFront" || param == "RecordAudio" || param == "RecordAudioFeedback") && lite) {
+      continue;
+    }
     auto toggle = new ParamControl(param, title, desc, icon, this);
 
     bool locked = params.getBool((param + "Lock").toStdString());
@@ -215,6 +227,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   addItem(new LabelControl(tr("Dongle ID"), getDongleId().value_or(tr("N/A"))));
   addItem(new LabelControl(tr("Serial"), params.get("HardwareSerial").c_str()));
 
+  const bool lite = getenv("LITE");
   pair_device = new ButtonControl(tr("Pair Device"), tr("PAIR"),
                                   tr("Pair your device with comma connect (connect.comma.ai) and claim your comma prime offer."));
   connect(pair_device, &ButtonControl::clicked, [=]() {
@@ -224,12 +237,12 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   addItem(pair_device);
 
   // offroad-only buttons
-
+  if (!lite) {
   auto dcamBtn = new ButtonControl(tr("Driver Camera"), tr("PREVIEW"),
                                    tr("Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)"));
   connect(dcamBtn, &ButtonControl::clicked, [=]() { emit showDriverView(); });
   addItem(dcamBtn);
-
+  }
   resetCalibBtn = new ButtonControl(tr("Reset Calibration"), tr("RESET"), "");
   connect(resetCalibBtn, &ButtonControl::showDescriptionEvent, this, &DevicePanel::updateCalibDescription);
   connect(resetCalibBtn, &ButtonControl::clicked, [&]() {
@@ -285,13 +298,13 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   QObject::connect(uiState()->prime_state, &PrimeState::changed, [this] (PrimeState::Type type) {
     pair_device->setVisible(type == PrimeState::PRIME_TYPE_UNPAIRED);
   });
-  QObject::connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
-    for (auto btn : findChildren<ButtonControl *>()) {
-      if (btn != pair_device && btn != resetCalibBtn) {
-        btn->setEnabled(offroad);
-      }
-    }
-  });
+  // QObject::connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
+  //   for (auto btn : findChildren<ButtonControl *>()) {
+  //     if (btn != pair_device && btn != resetCalibBtn) {
+  //       btn->setEnabled(offroad);
+  //     }
+  //   }
+  // });
 
   // power buttons
   QHBoxLayout *power_layout = new QHBoxLayout();
@@ -482,6 +495,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     {tr("Software"), new SoftwarePanel(this)},
     {tr("Firehose"), new FirehosePanel(this)},
     {tr("Developer"), new DeveloperPanel(this)},
+    {"DP", new DPPanel(this)},
   };
 
   nav_btns = new QButtonGroup(this);
@@ -526,7 +540,26 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
 
   sidebar_widget->setFixedWidth(500);
   main_layout->addWidget(sidebar_widget);
-  main_layout->addWidget(panel_widget);
+
+  // Create right column with model selector on top and panel_widget below
+  QWidget* right_column = new QWidget(this);
+  QVBoxLayout* right_layout = new QVBoxLayout(right_column);
+  right_layout->setContentsMargins(0, 0, 0, 0);
+  right_layout->setSpacing(20); // Space between model selector and panel
+
+  // Create the ModelSelector button at the top of right column
+  ModelSelector* model_selector = new ModelSelector(this);
+  right_layout->addWidget(model_selector);
+
+  // Set up panel widget and nav button references
+  model_selector->setPanelWidget(panel_widget);
+  model_selector->setNavButtonGroup(nav_btns);
+
+  // Add panel_widget below the model selector
+  right_layout->addWidget(panel_widget, 1); // Give panel_widget stretch priority
+
+  // Add right column to main layout
+  main_layout->addWidget(right_column);
 
   setStyleSheet(R"(
     * {
