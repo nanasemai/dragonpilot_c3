@@ -4,13 +4,9 @@ import time
 import warnings
 from pathlib import Path
 from logging.handlers import BaseRotatingHandler
-
 import zmq
-
 from openpilot.common.logging_extra import SwagLogger, SwagFormatter, SwagLogFileFormatter, HumanReadableFormatter, AnsiColorStripFormatter
 from openpilot.system.hardware.hw import Paths
-from openpilot.common.params import Params
-
 
 def get_file_handler():
   Path(Paths.swaglog_root()).mkdir(parents=True, exist_ok=True)

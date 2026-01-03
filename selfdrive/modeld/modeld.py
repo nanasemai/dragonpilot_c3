@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 from openpilot.system.hardware import TICI
-os.environ['DEV'] = 'QCOM' if TICI else 'CL'
+os.environ['DEV'] = 'QCOM' if TICI else 'LLVM'
 USBGPU = "USBGPU" in os.environ
 if USBGPU:
   os.environ['DEV'] = 'AMD'
@@ -33,9 +33,9 @@ from openpilot.selfdrive.modeld.models.commonmodel_pyx import DrivingModelFrame,
 from openpilot.selfdrive.modeld.runners.tinygrad_helpers import qcom_tensor_from_opencl_address
 from dragonpilot.selfdrive.controls.lib.road_edge_detector import RoadEdgeDetector
 
-# Ìí¼ÓÉè±¸ÀàĞÍÈÕÖ¾
+# æ·»åŠ è®¾å¤‡ç±»å‹æ—¥å¿—
 from tinygrad.device import Device
-cloudlog.info(f"µ±Ç°Ê¹ÓÃµÄÉè±¸ÀàĞÍ: {Device.DEFAULT}")
+cloudlog.info(f"å½“å‰ä½¿ç”¨çš„è®¾å¤‡ç±»å‹: {Device.DEFAULT}")
 
 PROCESS_NAME = "selfdrive.modeld.modeld"
 SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
@@ -96,7 +96,7 @@ class ModelState:
       self.vision_output_slices = vision_metadata['output_slices']
       vision_output_size = vision_metadata['output_shapes']['outputs'][1]
 
-    # È·¶¨µ±Ç°Ê¹ÓÃµÄºó¶ËÀàĞÍ£¨Ö»´òÓ¡Ò»´Î£©
+    # ç¡®å®šå½“å‰ä½¿ç”¨çš„è®¡ç®—è®¾å¤‡ï¼ˆåªæ‰“å°ä¸€æ¬¡ï¼‰
     device_type = "CPU"
     if os.environ.get('DEV') == 'CL':
       device_type = "CL GPU"
@@ -104,7 +104,7 @@ class ModelState:
       device_type = "QCOM GPU"
     elif USBGPU or AMD:
       device_type = "AMD GPU"
-    cloudlog.info(f"Ê¹ÓÃ{device_type}ºó¶ËÔËĞĞÄ£ĞÍ")
+    cloudlog.info(f"ä½¿ç”¨{device_type}è¿è¡Œæ¨ç†æ¨¡å‹")
 
     with open(POLICY_METADATA_PATH, 'rb') as f:
       policy_metadata = pickle.load(f)
