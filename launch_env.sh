@@ -16,5 +16,5 @@ fi
 export STAGING_ROOT="/data/safe_staging"
 
 # 重新加载 udev 规则并触发设备，解决 Panda USB 权限问题
-sudo udevadm control --reload-rules 2>/dev/null || true
-sudo udevadm trigger 2>/dev/null || true
+#sudo udevadm control --reload-rules 2>/dev/null || true
+#sudo udevadm trigger 2>/dev/null || true
