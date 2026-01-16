@@ -22,12 +22,12 @@ else
   echo "PYTHONPATH=${PWD}" >> "$ROOT"/.env
 fi
 
-# Set DEV to CL for GPU support
-echo "Setting DEV=CL for GPU support..."
+# Set DEV to GPU for OpenCL GPU support
+echo "Setting DEV=GPU for OpenCL GPU support..."
 if grep -q "export DEV=" "$ROOT"/.env; then
-  sed -i 's/.*export DEV=.*/export DEV=CL  # Use OPENCL GPU for model inference/' "$ROOT"/.env
+  sed -i 's/.*export DEV=.*/export DEV=GPU  # Use OPENCL GPU for model inference/' "$ROOT"/.env
 else
-  echo "export DEV=CL  # Use OPENCL GPU for model inference" >> "$ROOT"/.env
+  echo "export DEV=GPU  # Use OPENCL GPU for model inference" >> "$ROOT"/.env
 fi
 
 # Ensure AMD and USBGPU variables are not set (to use CL backend)

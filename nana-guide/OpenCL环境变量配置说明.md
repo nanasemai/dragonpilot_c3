@@ -1,22 +1,22 @@
- OpenCL环境变量配置脚本说明文档
+ GPU环境变量配置脚本说明文档
 
 ## 概述
 
-本文档详细介绍了三个OpenCL环境变量配置脚本的参数设置、用途以及不同设备配置的优化策略。这些脚本用于为tinygrad项目配置OpenCL编译环境，针对不同的GPU硬件进行优化。
+本文档详细介绍了三个GPU环境变量配置脚本的参数设置、用途以及不同设备配置的优化策略。这些脚本用于为tinygrad项目配置GPU编译环境，统一使用DEV=GPU启用OpenCL加速，针对不同的GPU硬件进行优化。
 
 ## 脚本文件说明
 
-### 1. setup_device_env.bat - 通用环境设置脚本
-**位置**: `nana-guide\setup_device_env.sh`
-**用途**: 通用的OpenCL环境设置，适用于大多数OpenCL兼容的GPU设备
+### 1. setup_device_env.sh - 通用环境设置脚本
+**位置**: `nana-guide/setup_device_env.sh`
+**用途**: 通用的OpenCL环境设置，适用于大多数OpenCL兼容的GPU设备，使用DEV=GPU启用OpenCL加速
 
-### 2. setup_nvidia_gt640m_device_env.bat - NVIDIA GT640M专用设置
-**位置**: `nana-guide\setup_nvidia_gt640m_device_env.sh`
-**用途**: 专门针对NVIDIA GeForce GT640M移动显卡的优化配置
+### 2. setup_nvidia_gt640m_device_env.sh - NVIDIA GT640M专用设置
+**位置**: `nana-guide/setup_nvidia_gt640m_device_env.sh`
+**用途**: 专门针对NVIDIA GeForce GT640M移动显卡的优化配置，使用DEV=GPU启用OpenCL加速
 
-### 3. setup_amd_r7_4700u_device_env.bat - AMD R7 4700U专用设置
-**位置**: `nana-guide\setup_amd_r7_4700u_device_env.sh`
-**用途**: 专门针对AMD Ryzen 7 4700U集成显卡的优化配置
+### 3. setup_amd_r7_4700u_device_env.sh - AMD R7 4700U专用设置
+**位置**: `nana-guide/setup_amd_r7_4700u_device_env.sh`
+**用途**: 专门针对AMD Ryzen 7 4700U集成显卡的优化配置，使用DEV=GPU启用OpenCL加速
 
 ## 环境变量参数详解
 
@@ -174,36 +174,36 @@
 2. 禁用CL_ARCH_DETECTION
 3. 逐步启用优化功能进行测试
 
-## 测试模型运行CL情况
+## 测试模型运行GPU情况
 
 ### 基本测试命令
 
 使用以下命令测试OpenCL模型编译和运行情况：
 
-```cmd
-PYTHONPATH="." CL=1 CL_HALF=0 CL_INT64=0 IMAGE=0 python examples\openpilot\compile3.py ..\selfdrive\modeld\models\driving_policy.onnx
+```bash
+PYTHONPATH="." DEV=GPU CL_HALF=0 CL_INT64=0 IMAGE=0 python examples/openpilot/compile3.py ../selfdrive/modeld/models/driving_policy.onnx
 ```
 
 ### 命令参数说明
 
 - **PYTHONPATH="."**：设置Python路径为当前目录
-- **CL=1**：启用OpenCL后端
+- **DEV=GPU**：启用OpenCL后端（统一使用GPU设置）
 - **CL_HALF=0**：禁用半精度支持（针对老旧GPU）
 - **CL_INT64=0**：禁用64位整数支持（针对老旧GPU）
 - **IMAGE=0**：禁用图像特定优化（适用于OpenCL设备）
-- **python examples\openpilot\compile3.py**：运行模型编译脚本
-- **..\selfdrive\modeld\models\driving_policy.onnx**：模型文件路径
+- **python examples/openpilot/compile3.py**：运行模型编译脚本
+- **../selfdrive/modeld/models/driving_policy.onnx**：模型文件路径
 
 ### 设备特定测试命令
 
 #### NVIDIA GT640M测试命令
-```cmd
-PYTHONPATH="." CL=1 CL_HALF=0 CL_INT64=0 CL_OPTIMIZATION_LEVEL=0 IMAGE=0 python examples\openpilot\compile3.py ..\selfdrive\modeld\models\driving_policy.onnx
+```bash
+PYTHONPATH="." DEV=GPU CL_HALF=0 CL_INT64=0 CL_OPTIMIZATION_LEVEL=0 IMAGE=0 python examples/openpilot/compile3.py ../selfdrive/modeld/models/driving_policy.onnx
 ```
 
 #### AMD R7 4700U测试命令
-```cmd
-PYTHONPATH="." CL=1 CL_ARCH_DETECTION=1 CL_OPTIMIZATION_LEVEL=2 IMAGE=0 python examples\openpilot\compile3.py ..\selfdrive\modeld\models\driving_policy.onnx
+```bash
+PYTHONPATH="." DEV=GPU CL_ARCH_DETECTION=1 CL_OPTIMIZATION_LEVEL=2 IMAGE=0 python examples/openpilot/compile3.py ../selfdrive/modeld/models/driving_policy.onnx
 ```
 
 ### 测试步骤
@@ -248,6 +248,6 @@ PYTHONPATH="." CL=1 CL_ARCH_DETECTION=1 CL_OPTIMIZATION_LEVEL=2 IMAGE=0 python e
 
 ## 总结
 
-这三个配置脚本提供了从通用到专用的OpenCL环境配置方案。理解每个参数的作用和设备特性是获得最佳性能的关键。建议根据实际硬件情况选择合适的配置，并在性能和稳定性之间找到平衡点。
+这三个配置脚本提供了从通用到专用的GPU环境配置方案，统一使用DEV=GPU启用OpenCL加速。理解每个参数的作用和设备特性是获得最佳性能的关键。建议根据实际硬件情况选择合适的配置，并在性能和稳定性之间找到平衡点。
 
-通过上述测试命令，可以验证OpenCL环境的正确性并优化模型运行性能。
+通过上述测试命令，可以验证GPU环境的正确性并优化模型运行性能。

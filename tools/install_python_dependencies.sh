@@ -34,6 +34,7 @@ if ! grep -q "PYTHONPATH=" "$ROOT"/.env; then
 fi
 
 # Users can manually add GPU support by uncommenting and modifying the following line
+# export DEV=GPU  # Use OpenCL GPU for model inference
 # export DEV=AMD  # Use AMD GPU for model inference
 # export DEV=NVIDIA  # Use NVIDIA GPU for model inference
 

@@ -55,26 +55,53 @@ X86平台有以下特点：
 - **构建工具**: SCons 4.0或以上版本
 - **依赖管理**: uv (项目使用的Python包管理器)
 
-## 3. 安装步骤
+## 3. 完整环境搭建流程
 
-### 3.1 获取项目代码
+### 3.1 系统准备
 
-首先，下载dragonpilot项目代码：
+在开始安装之前，确保您的系统满足以下要求：
+- Ubuntu 24.04 LTS 或其他兼容的Linux发行版
+- 至少8GB RAM（推荐16GB或以上）
+- 至少100GB可用存储空间（推荐SSD）
+- 稳定的网络连接
+
+首先，更新系统并安装基本工具：
+
+```bash
+# 更新系统包
+sudo apt update && sudo apt upgrade -y
+
+# 安装基本工具
+sudo apt install -y git git-lfs wget curl build-essential
+```
+
+### 3.2 获取项目代码
+
+下载dragonpilot项目代码：
 
 ```bash
 # 克隆项目仓库
 git clone https://github.com/dragonpilot-community/dragonpilot.git
+
 # 进入项目目录
 cd dragonpilot
+
+# 初始化并更新git lfs
+git lfs install
+
 # 下载大文件（模型和资源）
 git lfs pull
 ```
 
-### 3.2 安装系统依赖
+### 3.3 安装系统依赖
 
 运行项目提供的脚本安装Ubuntu系统依赖：
 
 ```bash
+# 确保脚本有执行权限
+chmod +x ./tools/install_ubuntu_dependencies.sh
+
+# 运行系统依赖安装脚本
 sudo ./tools/install_ubuntu_dependencies.sh
 ```
 
@@ -87,11 +114,15 @@ sudo ./tools/install_ubuntu_dependencies.sh
 - **文件系统库**：libxattr1-dev（用于xattr Python模块，实现文件扩展属性功能）
 - **OpenCL相关库**：opencl-headers, ocl-icd-opencl-dev等
 
-### 3.3 安装Python依赖
+### 3.4 安装Python依赖
 
 项目使用uv包管理器管理Python依赖并自动创建虚拟环境，所有依赖定义在`pyproject.toml`文件中：
 
 ```bash
+# 确保脚本有执行权限
+chmod +x ./tools/install_python_dependencies.sh
+
+# 运行Python依赖安装脚本
 ./tools/install_python_dependencies.sh
 ```
 
@@ -109,7 +140,7 @@ sudo ./tools/install_ubuntu_dependencies.sh
 
 **注意**：项目已不再使用手动的`pip install`命令安装依赖，所有依赖都应通过`pyproject.toml`和`uv sync`管理，以确保环境一致性。
 
-### 3.4 安装OpenCL驱动
+### 3.5 安装OpenCL驱动
 
 #### 对于AMD处理器（如Ryzen 7 4700U）：
 
@@ -293,54 +324,293 @@ clinfo
 - `nvidia-smi`命令应显示NVIDIA显卡信息和驱动版本
 - `clinfo`命令应显示`Platform Name: NVIDIA CUDA`和对应的NVIDIA显卡设备
 
-### 3.5 构建项目
+### 3.6 配置环境变量
 
-在构建项目之前，需要先激活Python虚拟环境，然后使用SCons构建项目。项目编译本身不依赖于`DEV`环境变量，但您可以通过设置`DEV`环境变量来指定运行时使用的GPU设备。
+使用项目提供的环境配置脚本设置必要的环境变量：
 
-#### 使用CPU构建（默认）
+```bash
+# 确保脚本有执行权限
+chmod +x ./nana-guide/setup_device_env.sh
+
+# 运行环境配置脚本
+./nana-guide/setup_device_env.sh
+```
+
+该脚本会：
+- 设置正确的PYTHONPATH
+- 配置DEV=GPU以启用OpenCL GPU加速
+- 启用ZMQ用于进程间通信
+- 启用USB摄像头支持
+- 配置必要的目录路径
+
+### 3.7 验证安装
+
+完成环境搭建后，验证项目是否能正常运行：
+
+```bash
+# 检查是否存在关键二进制文件（构建后验证）
+ls -la system/loggerd/loggerd system/camerad/camerad 2>/dev/null || echo "构建后会生成这些文件"
+
+# 检查Python模块是否可用
+source .venv/bin/activate
+python -c "import cereal.messaging; print('Cereal messaging module loaded successfully')"
+
+# 检查OpenCL设备
+clinfo | grep -E "Platform Name|Device Name"
+```
+
+
+首先确保系统内核和软件包是最新的：
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install wget gnupg2 shell-checker clinfo -y
+```
+
+**第二步：安装 AMD GPU 核心驱动 (amdgpu)**
+
+Ubuntu 24.04 默认带有开源的 amdgpu 内核驱动，但我们需要确保安装了必要的固件：
+
+```bash
+sudo apt install libdrm-dev libudev-dev -y
+```
+
+**第三步：安装 ROCm 软件栈 (核心步骤)**
+
+AMD 官方现在提供针对 Ubuntu 24.04 (Noble Numbat) 的仓库：
+
+1. 添加 AMD ROCm 仓库密钥：
+
+```bash
+sudo mkdir --parents /etc/apt/keyrings
+wget -qO- https://repo.radeon.com/rocm/rocm.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
+```
+
+2. 添加 ROCm 软件源（这里以 ROCm 6.2 为例，这是目前的稳定版本）：
+
+```bash
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.2 noble main" | sudo tee /etc/apt/sources.list.d/rocm.list
+```
+
+3. 配置优先权 (防止与 Ubuntu 默认库冲突)：
+
+```bash
+echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' | sudo tee /etc/apt/preferences.d/rocm-pin-600
+```
+
+4. 安装 OpenCL 运行时：
+
+```bash
+sudo apt update
+sudo apt install rocm-opencl-runtime rocm-hip-runtime -y
+```
+
+**第四步：配置用户权限**
+
+为了让普通用户无需 sudo 就能访问显卡硬件进行计算，必须将自己加入 video 和 render 组：
+
+```bash
+sudo usermod -aG video $USER
+sudo usermod -aG render $USER
+```
+
+**注意：执行完此步后，请务必重启电脑或注销重新登录，使权限生效。**
+
+**第五步：设置环境变量**
+
+为了让系统和 openpilot 找到 ROCm 的 OpenCL 库，需要设置环境变量：
+
+```bash
+# 打开 ~/.bashrc
+nano ~/.bashrc
+```
+
+在文件末尾添加以下内容：
+
+```bash
+export PATH=$PATH:/opt/rocm/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rocm/lib
+# 对于集成显卡(APU)，有时需要强制指定架构版本才能运行 OpenCL
+export HSA_OVERRIDE_GFX_VERSION=9.0.0
+```
+
+保存退出并刷新：
+
+```bash
+source ~/.bashrc
+```
+
+**第六步：验证 OpenCL 安装**
+
+运行以下命令检查 OpenCL 是否正确识别了你的 Radeon Graphics：
+
+```bash
+clinfo
+```
+
+**成功标志**：你应该能在输出中看到 `Platform Name: AMD Accelerated Parallel Processing`，以及 `Device Name: AMD Radeon Graphics`。
+
+如果 `Number of platforms` 为 0，说明驱动没加载成功。
+
+#### 对于NVIDIA显卡：
+
+**第一步：系统更新与基础准备**
+
+首先确保系统内核和软件包是最新的：
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install wget gnupg2 clinfo -y
+```
+
+**第二步：安装NVIDIA驱动**
+
+使用Ubuntu的图形驱动PPA安装最新的NVIDIA驱动：
+
+```bash
+# 添加NVIDIA驱动PPA
+sudo add-apt-repository ppa:graphics-drivers/ppa -y
+sudo apt update
+
+# 查看可用的NVIDIA驱动版本
+sudo ubuntu-drivers devices
+
+# 安装推荐的NVIDIA驱动（或指定版本）
+sudo ubuntu-drivers install
+# 或者安装特定版本，例如：
+# sudo apt install nvidia-driver-550 -y
+```
+
+**第三步：安装CUDA Toolkit和OpenCL**
+
+NVIDIA的CUDA Toolkit包含了OpenCL支持：
+
+```bash
+# 下载并安装CUDA Toolkit（以12.5版本为例）
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+
+sudo apt install cuda-toolkit-12-5 -y
+```
+
+**第四步：安装NVIDIA OpenCL ICD**
+
+```bash
+sudo apt install nvidia-opencl-icd nvidia-opencl-dev -y
+```
+
+**第五步：设置环境变量**
+
+为了让系统和openpilot找到CUDA和OpenCL库，需要设置环境变量：
+
+```bash
+# 打开~/.bashrc
+nano ~/.bashrc
+```
+
+在文件末尾添加以下内容：
+
+```bash
+export PATH=$PATH:/usr/local/cuda/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+```
+
+保存退出并刷新：
+
+```bash
+source ~/.bashrc
+```
+
+**第六步：验证NVIDIA驱动和OpenCL安装**
+
+```bash
+# 检查NVIDIA驱动状态
+nvidia-smi
+
+# 检查OpenCL安装
+clinfo
+```
+
+**成功标志**：
+- `nvidia-smi`命令应显示NVIDIA显卡信息和驱动版本
+- `clinfo`命令应显示`Platform Name: NVIDIA CUDA`和对应的NVIDIA显卡设备
+
+## 4. 完整构建流程
+
+### 4.1 构建前准备
+
+在构建项目之前，确保您已经完成了环境搭建的所有步骤，包括：
+- 系统依赖安装
+- Python依赖安装
+- OpenCL驱动安装和配置
+- 环境变量设置
+
+### 4.2 构建步骤
+
+#### 步骤1：激活虚拟环境
 
 ```bash
 # 激活Python虚拟环境
 source .venv/bin/activate
+```
 
+#### 步骤2：选择构建目标
+
+根据您的硬件配置，选择合适的构建目标：
+
+##### 使用CPU构建（默认）
+
+```bash
 # 自动检测架构并使用CPU构建（-j$(nproc)表示使用所有CPU核心加速构建，-u表示向上构建）
 scons -u -j$(nproc)
 ```
 
-#### 使用GPU构建
+##### 使用GPU构建
 
 如果您的系统支持CUDA（NVIDIA GPU）或AMD GPU，可以设置`DEV`环境变量来启用GPU加速编译：
 
 ```bash
-# 激活Python虚拟环境
-source .venv/bin/activate
-
 # 对于NVIDIA GPU（CUDA）
 export DEV=CUDA
 
-# 或者对于AMD GPU
-export DEV=AMD
+# 对于AMD GPU（OpenCL）
+export DEV=GPU
+
+# 或者对于AMD GPU（HIP）
+# export DEV=AMD
 
 # 然后构建项目
 scons -u -j$(nproc)
 ```
 
-#### 库文件依然依赖 icu66
+#### 步骤3：处理依赖项
+
+项目可能需要一些额外的依赖项，例如icu66：
+
 ```bash
+# 下载并安装icu66依赖
 wget http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu66_66.1-2ubuntu2.1_amd64.deb
 sudo dpkg -i libicu66_66.1-2ubuntu2.1_amd64.deb
 ```
 
-项目会自动检测您的架构（X86_64）并构建相应的版本。构建过程可能需要几分钟到几十分钟，具体取决于您的硬件性能。
+### 4.3 构建选项说明
 
-**注意：**
-1. 每次构建前都需要确保已激活Python虚拟环境，否则可能会出现依赖缺失或版本不匹配的错误。
-2. 要使用GPU构建，您需要确保已经按照第3.4节的说明正确安装了对应的GPU驱动和OpenCL支持。
-3. `DEV`环境变量会影响模型的编译目标设备，设置为CUDA或AMD可以让模型在GPU上运行，提高推理性能。
+- **`-u`选项**：向上构建，确保所有依赖项都被正确构建
+- **`-j$(nproc)选项`**：使用所有CPU核心加速构建过程
+- **`DEV`环境变量**：指定编译目标设备，影响模型的推理性能
+- **`--debug`选项**：启用调试模式构建（可选）
 
-### 3.6 验证安装
+### 4.4 构建时间
 
-构建完成后，验证项目是否能正常运行：
+构建过程的时间取决于您的硬件性能：
+- **高性能CPU**（8核以上）：约5-15分钟
+- **中等性能CPU**（4-6核）：约15-30分钟
+- **低性能CPU**（4核以下）：约30-60分钟
+
+### 4.5 验证构建结果
+
+构建完成后，验证项目是否成功构建：
 
 ```bash
 # 检查是否存在关键二进制文件
@@ -348,9 +618,52 @@ ls -la system/loggerd/loggerd system/camerad/camerad
 
 # 检查Python模块是否可用
 python -c "import cereal.messaging; print('Cereal messaging module loaded successfully')"
+
+# 检查构建日志是否有错误
+# 构建过程中的错误会显示在终端输出中
 ```
 
-如果以上命令没有报错，说明安装成功！
+如果以上命令没有报错，说明构建成功！
+
+### 4.6 构建故障排除
+
+如果构建过程中遇到错误，可以尝试以下解决方案：
+
+1. **依赖项缺失**
+   ```bash
+   # 重新安装系统依赖
+   sudo ./tools/install_ubuntu_dependencies.sh
+
+   # 重新安装Python依赖
+   ./tools/install_python_dependencies.sh
+   ```
+
+2. **编译器错误**
+   ```bash
+   # 检查编译器版本
+   clang --version
+
+   # 清理之前的构建结果并重新构建
+   scons -u -c
+   scons -u -j$(nproc)
+   ```
+
+3. **内存不足**
+   ```bash
+   # 减少并行构建线程数
+   scons -u -j4  # 使用4个核心构建
+   ```
+
+4. **OpenCL相关错误**
+   ```bash
+   # 验证OpenCL安装
+   clinfo
+
+   # 确保环境变量设置正确
+   echo $LD_LIBRARY_PATH
+   ```
+
+
 
 ## 4. 配置和运行
 
@@ -403,6 +716,8 @@ export ROAD_CAM=0
 # export DISABLE_OPENCL=1
 
 # Tinygrad设备配置（用户需根据GPU类型手动配置）
+# 对于OpenCL GPU（AMD、Intel集成显卡等），使用GPU
+# export DEV=GPU
 # 对于NVIDIA GPU，可以设置为CUDA
 # export DEV=CUDA
 
@@ -618,67 +933,77 @@ else:
 "
 ```
 
-### 5.1.5 相机参数设置
+### 5.1.5 详细相机参数设置
 
-对于自动驾驶应用，合适的相机参数设置对系统性能至关重要。USB摄像头通常需要调节参数以确保在不同光照条件下都能获得清晰的图像。
+对于自动驾驶应用，合适的相机参数设置对系统性能至关重要。USB摄像头通常需要调节参数以确保在不同光照条件下都能获得清晰的图像。本部分提供详细的相机参数调节方法和最佳实践。
 
 #### 5.1.5.1 安装v4l2-ctl工具
 
-首先安装v4l-utils工具包，它包含了v4l2-ctl工具：
+首先安装v4l-utils工具包，它包含了v4l2-ctl工具，用于调节摄像头参数：
 
 ```bash
+# 安装v4l-utils工具包
+sudo apt-get update
 sudo apt-get install -y v4l-utils
 ```
 
-#### 5.1.5.2 查看相机支持的参数
+#### 5.1.5.2 摄像头设备识别和信息查看
 
-使用以下命令查看摄像头支持的所有可调节参数：
+在调节参数之前，需要了解您的摄像头设备及其支持的功能：
 
 ```bash
-# 查看摄像头设备
+# 查看系统中所有可用的摄像头设备
 v4l2-ctl --list-devices
 
-# 查看特定摄像头的详细参数
+# 查看特定摄像头的详细参数控制选项
 v4l2-ctl -d /dev/video0 --list-ctrls
 
-# 查看摄像头支持的格式和分辨率
+# 查看摄像头支持的图像格式和分辨率
 v4l2-ctl -d /dev/video0 --list-formats-ext
+
+# 查看摄像头的当前配置
+v4l2-ctl -d /dev/video0 --all
 ```
 
-#### 5.1.5.3 常用相机参数调节
+#### 5.1.5.3 核心相机参数调节
 
 ##### 曝光控制
-曝光控制是自动驾驶应用中最重要的参数之一：
+曝光控制是自动驾驶应用中最重要的参数之一，直接影响图像的亮度和清晰度：
 
 ```bash
-# 设置自动曝光模式（推荐）
+# 模式1：自动曝光（推荐用于大多数场景）
 v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1
 
-# 手动曝光模式（高级用户）
+# 模式2：手动曝光（适用于特定光照条件）
 v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=3
 v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=100
+
+# 模式3：快门优先模式（高级用户）
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=2
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_time_absolute=50
 
 # 查看当前曝光设置
 v4l2-ctl -d /dev/video0 --get-ctrl=exposure_auto,exposure_absolute
 ```
 
 ##### 白平衡调节
-白平衡确保颜色准确性：
+白平衡确保颜色准确性，使系统能够正确识别道路标志、车辆和行人：
 
 ```bash
 # 自动白平衡（推荐）
 v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1
 
-# 手动白平衡（特定光照条件）
+# 手动白平衡（适用于特定光照条件）
 v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=0
-v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature=4000
+v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature=4000  # 日光
+# v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature=6500  # 钨丝灯
 
 # 查看当前白平衡设置
 v4l2-ctl -d /dev/video0 --get-ctrl=white_balance_temperature_auto,white_balance_temperature
 ```
 
-##### 亮度和对比度
-优化图像质量：
+##### 图像质量参数
+优化图像质量以提高系统的识别能力：
 
 ```bash
 # 调节亮度（范围通常为0-255）
@@ -687,19 +1012,28 @@ v4l2-ctl -d /dev/video0 --set-ctrl=brightness=128
 # 调节对比度（范围通常为0-255）
 v4l2-ctl -d /dev/video0 --set-ctrl=contrast=128
 
-# 调节饱和度
+# 调节饱和度（范围通常为0-255）
 v4l2-ctl -d /dev/video0 --set-ctrl=saturation=64
 
-# 调节锐度
+# 调节锐度（范围通常为0-255）
 v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=25
+
+# 调节伽马值（范围通常为100-500）
+v4l2-ctl -d /dev/video0 --set-ctrl=gamma=200
+
+# 查看当前图像质量设置
+v4l2-ctl -d /dev/video0 --get-ctrl=brightness,contrast,saturation,sharpness,gamma
 ```
 
 ##### 分辨率和帧率设置
-设置合适的图像尺寸和帧率：
+设置合适的图像尺寸和帧率，平衡图像质量和系统性能：
 
 ```bash
 # 设置分辨率（推荐1080p）
 v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=YUYV
+
+# 或者设置720p（性能优先）
+# v4l2-ctl -d /dev/video0 --set-fmt-video=width=1280,height=720,pixelformat=YUYV
 
 # 设置帧率（推荐30fps）
 v4l2-ctl -d /dev/video0 --set-ctrl=framerate=30/1
@@ -708,33 +1042,110 @@ v4l2-ctl -d /dev/video0 --set-ctrl=framerate=30/1
 v4l2-ctl -d /dev/video0 --get-fmt-video
 ```
 
-#### 5.1.5.4 针对自动驾驶的推荐参数
+##### 高级参数调节
 
-基于自动驾驶应用的特殊需求，推荐以下参数配置：
+```bash
+# 调节逆光补偿（0=关闭，1=开启）
+v4l2-ctl -d /dev/video0 --set-ctrl=backlight_compensation=1
+
+# 调节增益（ISO）
+v4l2-ctl -d /dev/video0 --set-ctrl=gain=10
+
+# 调节色调（范围通常为-180到180）
+v4l2-ctl -d /dev/video0 --set-ctrl=hue=0
+
+# 启用自动增益控制
+v4l2-ctl -d /dev/video0 --set-ctrl=gain_automatic=1
+```
+
+#### 5.1.5.4 场景特定参数配置
+
+基于不同驾驶场景的特殊需求，推荐以下参数配置：
 
 ##### 白天驾驶配置
 ```bash
 # 白天驾驶参数设置
-v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1        # 自动曝光
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1                # 自动曝光
 v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1  # 自动白平衡
-v4l2-ctl -d /dev/video0 --set-ctrl=brightness=120         # 中等亮度
-v4l2-ctl -d /dev/video0 --set-ctrl=contrast=150           # 较高对比度
-v4l2-ctl -d /dev/video0 --set-ctrl=saturation=70          # 中等饱和度
-v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=30           # 中等锐度
+v4l2-ctl -d /dev/video0 --set-ctrl=brightness=120                 # 中等亮度
+v4l2-ctl -d /dev/video0 --set-ctrl=contrast=150                   # 较高对比度
+v4l2-ctl -d /dev/video0 --set-ctrl=saturation=70                  # 中等饱和度
+v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=30                   # 中等锐度
+v4l2-ctl -d /dev/video0 --set-ctrl=backlight_compensation=1       # 启用逆光补偿
+v4l2-ctl -d /dev/video0 --set-ctrl=gain_automatic=1              # 自动增益
 ```
 
 ##### 夜间驾驶配置
 ```bash
 # 夜间驾驶参数设置
-v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1        # 自动曝光
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1                # 自动曝光
 v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1  # 自动白平衡
-v4l2-ctl -d /dev/video0 --set-ctrl=brightness=150         # 较高亮度
-v4l2-ctl -d /dev/video0 --set-ctrl=contrast=120           # 中等对比度
-v4l2-ctl -d /dev/video0 --set-ctrl=saturation=50          # 较低饱和度
-v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=20           # 较低锐度
+v4l2-ctl -d /dev/video0 --set-ctrl=brightness=150                 # 较高亮度
+v4l2-ctl -d /dev/video0 --set-ctrl=contrast=120                   # 中等对比度
+v4l2-ctl -d /dev/video0 --set-ctrl=saturation=50                  # 较低饱和度
+v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=20                   # 较低锐度
+v4l2-ctl -d /dev/video0 --set-ctrl=backlight_compensation=1       # 启用逆光补偿
+v4l2-ctl -d /dev/video0 --set-ctrl=gain_automatic=1              # 自动增益
 ```
 
-#### 5.1.5.5 在dragonpilot启动脚本中自动设置参数
+##### 隧道驾驶配置
+```bash
+# 隧道驾驶参数设置
+v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1                # 自动曝光
+v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1  # 自动白平衡
+v4l2-ctl -d /dev/video0 --set-ctrl=brightness=140                 # 较高亮度
+v4l2-ctl -d /dev/video0 --set-ctrl=contrast=130                   # 中等对比度
+v4l2-ctl -d /dev/video0 --set-ctrl=saturation=60                  # 中等饱和度
+v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=25                   # 中等锐度
+```
+
+#### 5.1.5.5 自动参数设置脚本
+
+创建一个脚本，根据时间自动调整摄像头参数：
+
+```bash
+# 创建摄像头参数设置脚本
+cat > ~/set_camera_params.sh << 'EOF'
+#!/bin/bash
+
+# 摄像头设备
+CAMERA_DEVICE="/dev/video0"
+
+# 获取当前小时
+HOUR=$(date +"%H")
+
+# 根据时间设置不同的参数
+if [ $HOUR -ge 6 ] && [ $HOUR -lt 18 ]; then
+    # 白天模式
+    echo "设置白天驾驶参数..."
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=exposure_auto=1
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=white_balance_temperature_auto=1
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=brightness=120
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=contrast=150
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=saturation=70
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=sharpness=30
+else
+    # 夜间模式
+    echo "设置夜间驾驶参数..."
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=exposure_auto=1
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=white_balance_temperature_auto=1
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=brightness=150
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=contrast=120
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=saturation=50
+    v4l2-ctl -d $CAMERA_DEVICE --set-ctrl=sharpness=20
+fi
+
+echo "摄像头参数设置完成！"
+EOF
+
+# 添加执行权限
+chmod +x ~/set_camera_params.sh
+
+# 运行脚本
+~/set_camera_params.sh
+```
+
+#### 5.1.5.6 在dragonpilot启动脚本中集成
 
 您可以在`launch_chffrplus.sh`中添加相机参数自动设置：
 
@@ -746,41 +1157,73 @@ if [ ! -f /AGNOS ]; then
   # 等待摄像头设备就绪
   sleep 2
 
-  # 相机参数调节（错误处理避免启动失败）
-  v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1 2>/dev/null || echo "曝光设置失败，使用默认值"
-  v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1 2>/dev/null || echo "白平衡设置失败，使用默认值"
-  v4l2-ctl -d /dev/video0 --set-ctrl=brightness=128 2>/dev/null || echo "亮度设置失败，使用默认值"
-  v4l2-ctl -d /dev/video0 --set-ctrl=contrast=128 2>/dev/null || echo "对比度设置失败，使用默认值"
+  # 检查摄像头是否存在
+  if [ -c /dev/video0 ]; then
+    echo "正在设置摄像头参数..."
 
-  # 设置分辨率（如果摄像头支持）
-  v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=YUYV 2>/dev/null || echo "分辨率设置失败，使用默认值"
+    # 相机参数调节（错误处理避免启动失败）
+    v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1 2>/dev/null || echo "曝光设置失败，使用默认值"
+    v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_temperature_auto=1 2>/dev/null || echo "白平衡设置失败，使用默认值"
+    v4l2-ctl -d /dev/video0 --set-ctrl=brightness=128 2>/dev/null || echo "亮度设置失败，使用默认值"
+    v4l2-ctl -d /dev/video0 --set-ctrl=contrast=128 2>/dev/null || echo "对比度设置失败，使用默认值"
+    v4l2-ctl -d /dev/video0 --set-ctrl=saturation=64 2>/dev/null || echo "饱和度设置失败，使用默认值"
+    v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=25 2>/dev/null || echo "锐度设置失败，使用默认值"
+    v4l2-ctl -d /dev/video0 --set-ctrl=backlight_compensation=1 2>/dev/null || echo "逆光补偿设置失败，使用默认值"
+
+    # 设置分辨率（如果摄像头支持）
+    v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=YUYV 2>/dev/null || echo "1080p设置失败，尝试720p..."
+    v4l2-ctl -d /dev/video0 --set-fmt-video=width=1280,height=720,pixelformat=YUYV 2>/dev/null || echo "720p设置失败，使用默认分辨率"
+
+    echo "摄像头参数设置完成！"
+  else
+    echo "警告：未找到摄像头设备 /dev/video0"
+  fi
 fi
 ```
 
-#### 5.1.5.6 参数调节注意事项
+#### 5.1.5.7 参数调节最佳实践
 
-1. **兼容性测试**：不同摄像头支持的参数可能不同，建议先测试所有可用参数
-2. **环境适应性**：根据实际驾驶环境（白天/夜间/隧道）调整参数
-3. **性能平衡**：高分辨率和高帧率会增加计算负担，需平衡性能需求
-4. **稳定性优先**：自动驾驶应用优先考虑图像稳定性和可靠性
+1. **循序渐进**：一次只调节一个参数，观察效果后再调节其他参数
+2. **记录基准**：在调节前记录默认参数值，以便在需要时恢复
+3. **场景测试**：在不同场景下测试参数设置，包括白天、夜间、隧道等
+4. **性能监控**：注意调节参数对系统性能的影响，特别是高分辨率和高帧率
+5. **定期检查**：定期检查摄像头参数是否保持在最佳状态
 
-#### 5.1.5.7 调试和故障排除
+#### 5.1.5.8 调试和故障排除
 
 如果摄像头参数调节出现问题，可以使用以下命令调试：
 
 ```bash
-# 查看所有支持的参数和当前值
+# 查看所有支持的参数和当前值（详细）
 v4l2-ctl -d /dev/video0 --list-ctrls-menus
 
-# 重置所有参数为默认值
+# 查看摄像头的完整信息
 v4l2-ctl -d /dev/video0 --all
 
 # 测试摄像头效果
 ffplay /dev/video0
 
 # 检查参数设置是否生效
-v4l2-ctl -d /dev/video0 --get-ctrl=exposure_auto,white_balance_temperature_auto,brightness,contrast
+v4l2-ctl -d /dev/video0 --get-ctrl=exposure_auto,white_balance_temperature_auto,brightness,contrast,saturation,sharpness
+
+# 重置所有参数为默认值
+# 注意：不同摄像头的重置方法可能不同，通常断开并重新连接摄像头即可
+
+# 检查摄像头连接状态
+dmesg | grep video
+ls -la /dev/video*
 ```
+
+#### 5.1.5.9 常见问题解决方案
+
+| 问题 | 可能原因 | 解决方案 |
+|------|---------|--------|
+| 图像太暗 | 曝光不足 | 增加brightness值，或设置exposure_auto=1 |
+| 图像太亮 | 曝光过度 | 减少brightness值，或设置exposure_auto=1 |
+| 颜色失真 | 白平衡不正确 | 设置white_balance_temperature_auto=1 |
+| 图像模糊 | 对焦问题或锐度不足 | 调整sharpness值，检查摄像头是否支持自动对焦 |
+| 帧率低 | 分辨率过高或系统负载大 | 降低分辨率，设置较低的帧率 |
+| 画面闪烁 | 电源不稳定或帧率与电源频率不匹配 | 检查电源连接，调整帧率为50或60fps |
 
 ### 5.2 传感器配置
 
@@ -1440,11 +1883,13 @@ export DATA_RETENTION_DAYS=30
 
 ## 9. 部署和自动化
 
-### 9.1 系统服务配置
+### 9.1 完整的开机自动启动流程
 
-#### 9.1.1 systemd服务
+#### 9.1.1 systemd服务配置（推荐）
 
-创建systemd服务以实现自动启动：
+使用systemd服务是实现开机自动启动的最可靠方法，适用于所有Linux发行版。
+
+**步骤1：创建systemd服务文件**
 
 ```bash
 # 创建服务文件
@@ -1468,16 +1913,52 @@ EnvironmentFile=$HOME/dragonpilot/.env
 [Install]
 WantedBy=multi-user.target
 EOF
+```
 
-# 启用并启动服务
+**步骤2：重新加载systemd配置**
+
+```bash
+# 重新加载systemd配置
+sudo systemctl daemon-reload
+```
+
+**步骤3：启用服务**
+
+```bash
+# 启用服务，使其在开机时自动启动
 sudo systemctl enable dragonpilot.service
+```
+
+**步骤4：启动服务**
+
+```bash
+# 立即启动服务
 sudo systemctl start dragonpilot.service
+```
+
+**步骤5：检查服务状态**
+
+```bash
+# 检查服务状态，确保它正常运行
 sudo systemctl status dragonpilot.service
 ```
 
-#### 9.1.2 开机自启动
+**步骤6：管理服务**
 
-配置不同的桌面环境自动启动：
+```bash
+# 停止服务
+sudo systemctl stop dragonpilot.service
+
+# 禁用服务（不再开机自启）
+sudo systemctl disable dragonpilot.service
+
+# 查看服务日志
+sudo journalctl -u dragonpilot.service -f
+```
+
+#### 9.1.2 桌面环境自动启动
+
+如果您使用桌面环境，可以配置图形界面的自动启动：
 
 **GNOME桌面环境**：
 ```bash
@@ -1494,35 +1975,121 @@ Terminal=true
 Categories=Science;Engineering;
 EOF
 
+# 添加执行权限
 chmod +x ~/Desktop/dragonpilot.desktop
 
 # 如果图标不存在，使用默认图标
 if [ ! -f "$HOME/dragonpilot/selfdrive/assets/icon.png" ]; then
     sed -i "s|Icon=$HOME/dragonpilot/selfdrive/assets/icon.png|Icon=system-run|g" ~/Desktop/dragonpilot.desktop
 fi
+
+# 添加到开机自启动
+mkdir -p ~/.config/autostart
+cp ~/Desktop/dragonpilot.desktop ~/.config/autostart/
 ```
 
 **KDE桌面环境**：
 ```bash
-# 创建启动脚本
+# 创建自动启动文件
 cat > ~/.config/autostart/dragonpilot.desktop << EOF
 [Desktop Entry]
-Exec=gnome-terminal --title="DragonPilot Logs" -- bash -c "cd $HOME/dragonpilot && bash $HOME/dragonpilot/nana-guide/start_carrotpilot.sh"
+Exec=konsole --hold -e bash -c "cd $HOME/dragonpilot && ./launch_chffrplus.sh"
 Name=DragonPilot C3
 Type=Application
+Terminal=true
 EOF
 
-# 或者创建shell脚本
-cat > ~/.config/autostart/dragonpilot.sh << EOF
-#!/bin/bash
-cd $HOME/dragonpilot
-./launch_chffrplus.sh
-EOF
-chmod +x ~/.config/autostart/dragonpilot.sh
-
-# KDE特定配置
-kwriteconfig5 --file kwinrc --group Autostart --key dragonpilot "$(pwd)/launch_chffrplus.sh"
+# 添加执行权限
+chmod +x ~/.config/autostart/dragonpilot.desktop
 ```
+
+**Xfce桌面环境**：
+```bash
+# 创建自动启动文件
+cat > ~/.config/autostart/dragonpilot.desktop << EOF
+[Desktop Entry]
+Name=DragonPilot C3
+Comment=DragonPilot C3 Autonomous Driving Assistant
+Exec=bash -c "cd $HOME/dragonpilot && ./launch_chffrplus.sh"
+Type=Application
+Terminal=true
+EOF
+
+# 添加执行权限
+chmod +x ~/.config/autostart/dragonpilot.desktop
+```
+
+#### 9.1.3 启动脚本配置
+
+使用项目提供的启动脚本，确保它能正确处理虚拟环境和环境变量：
+
+```bash
+# 查看启动脚本内容
+cat ./nana-guide/start_dragonpilot.sh
+
+# 确保脚本有执行权限
+chmod +x ./nana-guide/start_dragonpilot.sh
+
+# 测试启动脚本
+./nana-guide/start_dragonpilot.sh
+```
+
+#### 9.1.4 自动启动故障排除
+
+如果自动启动失败，可以尝试以下解决方案：
+
+1. **权限问题**
+   ```bash
+   # 检查服务文件权限
+   sudo chmod 644 /etc/systemd/system/dragonpilot.service
+
+   # 检查启动脚本权限
+   chmod +x ./launch_chffrplus.sh
+   chmod +x ./nana-guide/start_dragonpilot.sh
+   ```
+
+2. **环境变量问题**
+   ```bash
+   # 检查.env文件是否存在且格式正确
+   cat .env
+
+   # 确保虚拟环境存在
+   ls -la .venv/
+   ```
+
+3. **服务配置问题**
+   ```bash
+   # 查看服务详细日志
+   sudo journalctl -u dragonpilot.service -n 50
+
+   # 检查服务文件中的路径是否正确
+   sudo nano /etc/systemd/system/dragonpilot.service
+   ```
+
+4. **依赖项问题**
+   ```bash
+   # 确保所有依赖项都已安装
+   sudo ./tools/install_ubuntu_dependencies.sh
+   ./tools/install_python_dependencies.sh
+   ```
+
+5. **网络问题**
+   ```bash
+   # 检查网络连接
+   ping -c 1 google.com
+
+   # 修改服务配置，在网络完全就绪后启动
+   sudo nano /etc/systemd/system/dragonpilot.service
+   # 将After=network.target改为After=network-online.target
+   ```
+
+#### 9.1.5 最佳实践
+
+- **使用systemd服务**：对于服务器或无桌面环境的系统，推荐使用systemd服务
+- **使用桌面自动启动**：对于有桌面环境的系统，可以使用图形界面的自动启动
+- **测试启动流程**：在配置完成后，重启系统测试自动启动是否正常
+- **监控服务状态**：定期检查服务状态，确保它正常运行
+- **备份配置**：备份服务配置文件和启动脚本，以便在需要时恢复
 
 ### 9.2 定时任务
 
@@ -1890,7 +2457,9 @@ python -c "import onnx; print('ONNX模块正常')"
 
 ```bash
 # 使用GPU推理
-export DEV=CUDA  # 或 AMD
+export DEV=GPU  # 对于OpenCL GPU（AMD、Intel集成显卡等）
+export DEV=CUDA  # 对于NVIDIA GPU
+# export DEV=AMD  # 对于AMD GPU（HIP）
 
 # 降低模型精度以提高速度
 export MODEL_PRECISION=FP16
