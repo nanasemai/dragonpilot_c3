@@ -49,10 +49,15 @@ def tg_compile(flags, model_name):
 
 # Compile small models
 for model_name in ['driving_vision', 'driving_policy', 'dmonitoring_model']:
-  flags = {
-    'larch64': 'DEV=QCOM',
-    'Darwin': 'DEV=CPU IMAGE=0',
-  }.get(arch, 'DEV=LLVM IMAGE=0')
+  # Determine device based on environment or default to LLVM
+  dev_from_env = os.environ.get('DEV', '')
+  if dev_from_env:
+    flags = f'DEV={dev_from_env} IMAGE=0'
+  else:
+    flags = {
+      'larch64': 'DEV=QCOM',
+      'Darwin': 'DEV=CPU IMAGE=0',
+    }.get(arch, 'DEV=LLVM IMAGE=0')
   tg_compile(flags, model_name)
 
 # Compile BIG model if USB GPU is available

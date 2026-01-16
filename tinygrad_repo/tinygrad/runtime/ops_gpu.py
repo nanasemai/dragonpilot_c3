@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import cast
-import ctypes, functools, hashlib
+import ctypes, functools, hashlib, os
 from tinygrad.runtime.autogen import opencl as cl
 from tinygrad.helpers import init_c_var, to_char_p_p, from_mv, OSX, DEBUG, getenv, mv_address, suppress_finalizing
 from tinygrad.renderer.cstyle import OpenCLRenderer, IntelRenderer
@@ -17,10 +17,56 @@ def checked(ret, status): return (check(status.value), ret)[1]
 class CLCompiler(Compiler):
   def __init__(self, dev:CLDevice, compile_key:str):
     self.dev = dev
+
+    if "CL_HALF" in os.environ:
+      self.cl_half = int(os.environ["CL_HALF"])
+    else:
+      self.cl_half = 1 if dev.supports_fp16 else 0
+
+    if "CL_INT64" in os.environ:
+      self.cl_int64 = int(os.environ["CL_INT64"])
+    else:
+      self.cl_int64 = 1 if dev.supports_int64 else 0
+
+    if "CL_OPTIMIZATION_LEVEL" in os.environ:
+      self.opt_level = int(os.environ["CL_OPTIMIZATION_LEVEL"])
+    else:
+      self.opt_level = 1
+
+    if DEBUG >= 1:
+      print(f"CLCompiler: Using settings - CL_HALF={self.cl_half}, CL_INT64={self.cl_int64}, OPT_LEVEL={self.opt_level}")
+      if self.cl_half == 0 and dev.supports_fp16:
+        print("CLCompiler: WARNING: FP16 supported but disabled by user setting")
+      if self.cl_int64 == 0 and dev.supports_int64:
+        print("CLCompiler: WARNING: Int64 supported but disabled by user setting")
+
     super().__init__(f"compile_cl_{compile_key}")
+
+  def _get_compile_args(self) -> str:
+    compile_args = ""
+    if self.cl_half == 0:
+      compile_args += " -DCL_HALF_DISABLED"
+    if self.cl_int64 == 0:
+      compile_args += " -DCL_INT64_DISABLED"
+    if self.opt_level == 0:
+      compile_args += " -cl-opt-disable"
+    elif self.opt_level == 2:
+      compile_args += " -cl-mad-enable -cl-fast-relaxed-math -cl-unsafe-math-optimizations"
+    return compile_args
+
   def compile(self, src:str) -> bytes:
+    compile_args = self._get_compile_args()
+
+    # CL_HALF=0: 修复OpenCL代码中的half类型
+    if self.cl_half == 0 and "half" in src:
+      if DEBUG >= 1: print("CLCompiler: Fixing half type in OpenCL source")
+      src = src.replace("__fp16", "float")
+      src = src.replace("half", "float")
+      # 移除FP16扩展声明
+      src = "\n".join(line for line in src.split("\n") if "cl_khr_fp16" not in line)
+
     program = checked(cl.clCreateProgramWithSource(self.dev.context, 1, to_char_p_p([src.encode()]), None, status := ctypes.c_int32()), status)
-    build_status: int = cl.clBuildProgram(program, 1, self.dev.device_id, None, cl.clBuildProgram.argtypes[4](), None)
+    build_status: int = cl.clBuildProgram(program, 1, self.dev.device_id, compile_args.encode() if compile_args else None, cl.clBuildProgram.argtypes[4](), None)
     if build_status != 0:
       cl.clGetProgramBuildInfo(program, self.dev.device_id, cl.CL_PROGRAM_BUILD_LOG, 0, None, log_size := ctypes.c_size_t())
       cl.clGetProgramBuildInfo(program, self.dev.device_id, cl.CL_PROGRAM_BUILD_LOG, log_size.value, mstr := ctypes.create_string_buffer(log_size.value), None)  # noqa: E501
@@ -107,6 +153,28 @@ class CLDevice(Compiled):
     self.queue = checked(cl.clCreateCommandQueue(self.context, self.device_id, cl.CL_QUEUE_PROFILING_ENABLE, status), status)
     self.pending_copyin: list[memoryview] = []
     self.device_exts = (cl.clGetDeviceInfo(self.device_id, cl.CL_DEVICE_EXTENSIONS, 4096, ctypes.byref(buf := ctypes.create_string_buffer(4096)), ctypes.byref(total := ctypes.c_size_t())), ctypes.string_at(buf, size=total.value).decode())[1]  # noqa: E501
+
+    self.supports_fp16 = "cl_khr_fp16" in self.device_exts
+    self.supports_int64 = "cl_khr_int64" in self.device_exts
+    self.supports_double = "cl_khr_fp64" in self.device_exts
+
+    if DEBUG >= 1:
+      print(f"CLDevice: GPU capabilities - FP16: {self.supports_fp16}, Int64: {self.supports_int64}, Double: {self.supports_double}")
+
+    if "GT 640M" in self.device_name or "GTX 640M" in self.device_name:
+      if DEBUG >= 1:
+        print("CLDevice: WARNING: Detected NVIDIA GT640M (Kepler architecture)")
+        print("CLDevice: This GPU has limited OpenCL capabilities")
+        print("CLDevice: Recommended settings: CL_HALF=0, CL_INT64=0, CL_OPTIMIZATION_LEVEL=0")
+        if not self.supports_fp16:
+          print("CLDevice: INFO: FP16 not supported by this GPU (expected)")
+        if not self.supports_int64:
+          print("CLDevice: INFO: Int64 not supported by this GPU (expected)")
+    elif not self.supports_fp16 or not self.supports_int64:
+      if DEBUG >= 1:
+        print("CLDevice: WARNING: GPU has limited capabilities detected")
+        print("CLDevice: Some advanced features may not be available")
+        print("CLDevice: Consider using conservative optimization settings")
 
     compile_key = hashlib.md5(self.device_name.encode() + self.driver_version.encode()).hexdigest()
     renderer = IntelRenderer() if "cl_intel_subgroup_matrix_multiply_accumulate" in self.device_exts and getenv("INTEL") else OpenCLRenderer()

@@ -246,6 +246,17 @@ class OnnxPBParser:
     present_fields = [field for field in ['float_data', 'int32_data', 'int64_data', 'double_data', 'uint64_data', 'raw_data'] if field in obj]
     assert len(present_fields) == 1, f"only 1 data field is allowed from {obj=}"
     data = obj[present_fields[0]]
+
+    # FP16回退：如果CL_HALF=0且数据类型是float16，则转换为float32
+    if to_dtype == dtypes.float16 and getenv("CL_HALF", 1) == 0:
+      if DEBUG >= 1: print(f"ONNX Parser: Converting float16 to float32 (CL_HALF=0)")
+      to_dtype = dtypes.float32
+
+    # Int64回退：如果CL_INT64=0且数据类型是int64，则转换为int32
+    if to_dtype == dtypes.int64 and getenv("CL_INT64", 1) == 0:
+      if DEBUG >= 1: print(f"ONNX Parser: Converting int64 to int32 (CL_INT64=0)")
+      to_dtype = dtypes.int32
+
     if not isinstance(data, Tensor):
       obj["parsed_tensor"] = Tensor(data, dtype=to_dtype).reshape(shape)
       return obj
@@ -254,7 +265,16 @@ class OnnxPBParser:
     data = data.to(Device.DEFAULT) if true_dtype is to_dtype else data.to("cpu").cast(to_dtype).to(Device.DEFAULT)
     # const folding
     if shape == ():
-      if data.dtype == dtypes.float16 and sys.version_info < (3, 12): data = data.cast(dtypes.float32)
+      # 在所有情况下都将float16转换为float32（支持CL_HALF=0）
+      if to_dtype == dtypes.float16:
+        if DEBUG >= 1: print(f"ONNX Parser: Converting float16 to float32 for constant (CL_HALF=0)")
+        to_dtype = dtypes.float32
+      if data.dtype == dtypes.float16: data = data.cast(dtypes.float32)
+      if sys.version_info < (3, 12) and data.dtype == dtypes.float16: data = data.cast(dtypes.float32)
+      # 最终确保data不是float16
+      if data.dtype == dtypes.float16:
+        if DEBUG >= 1: print(f"ONNX Parser: Final cast float16 to float32")
+        data = data.cast(dtypes.float32)
       data = Tensor(data.item(), dtype=to_dtype).reshape(shape)
     obj["parsed_tensor"] = data
     return obj
