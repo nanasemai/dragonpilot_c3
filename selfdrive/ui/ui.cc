@@ -74,6 +74,11 @@ void ui_update_params(UIState *s) {
   s->scene.dp_ui_hide_hud_speed_kph = std::atoi(params.get("dp_ui_hide_hud_speed_kph").c_str());
   s->scene.dp_ui_rainbow = params.getBool("dp_ui_rainbow");
   s->scene.dp_ui_radar_tracks = params.getBool("dp_ui_radar_tracks");
+  
+  // DEV UI parameters
+  s->scene.dev_ui_info = std::atoi(params.get("dp_dev_ui_info").c_str());
+  s->scene.torqued_override = std::atoi(params.get("dp_torqued_override").c_str());
+  s->scene.long_pid_override = std::atoi(params.get("dp_long_pid_override").c_str());
 }
 
 void UIState::updateStatus() {

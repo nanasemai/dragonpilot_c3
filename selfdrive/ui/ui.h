@@ -68,6 +68,11 @@ typedef struct UIScene {
   int dp_ui_hide_hud_speed_kph = 0;
   bool dp_ui_rainbow = false;
   bool dp_ui_radar_tracks = false;
+  
+  // DEV UI parameters
+  int dev_ui_info = 0;
+  bool torqued_override = false;
+  bool long_pid_override = false;
 } UIScene;
 
 class UIState : public QObject {

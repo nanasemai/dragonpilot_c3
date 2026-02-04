@@ -25,6 +25,11 @@ private:
 
   int skip_frame_count = 0;
   bool wide_cam_requested = false;
+  
+  // DEV UI related
+  int devUiInfo = 0;
+  void updateDevUIState(const UIState &s);
+  void drawDevUI(QPainter &p, const QRect &rect);
 
 protected:
   void paintGL() override;

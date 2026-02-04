@@ -27,6 +27,38 @@ void AnnotatedCameraWidget::updateState(const UIState &s) {
   if (!s.scene.lite) {
     dmon.updateState(s);
   }
+
+  // update DEV UI state
+  updateDevUIState(s);
+}
+
+void AnnotatedCameraWidget::updateDevUIState(const UIState &s) {
+  devUiInfo = s.scene.dev_ui_info;
+}
+
+void AnnotatedCameraWidget::drawDevUI(QPainter &p, const QRect &rect) {
+  if (devUiInfo == 0) {
+    return;
+  }
+
+  // Simple implementation for demonstration
+  // This will be expanded with more detailed DEV UI elements
+  p.save();
+  p.setRenderHint(QPainter::TextAntialiasing);
+
+  // Draw a simple DEV UI indicator
+  QFont font;
+  font.setFamily("Inter");
+  font.setPixelSize(35);
+  font.setBold(true);
+  p.setFont(font);
+
+  QString devInfoText = QString("DEV UI Active - Mode %1").arg(devUiInfo);
+  QRect textRect(rect.left() + 50, rect.top() + 50, 400, 50);
+  p.setPen(QColor(255, 255, 255, 200));
+  p.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, devInfoText);
+
+  p.restore();
 }
 
 void AnnotatedCameraWidget::initializeGL() {
@@ -142,6 +174,11 @@ void AnnotatedCameraWidget::paintGL() {
     experimental_btn->setVisible(true);
   } else {
     experimental_btn->setVisible(false);
+  }
+
+  // Draw DEV UI if enabled
+  if (devUiInfo > 0) {
+    drawDevUI(painter, rect());
   }
 
   double cur_draw_t = millis_since_boot();

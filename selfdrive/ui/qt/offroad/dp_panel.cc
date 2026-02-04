@@ -262,6 +262,14 @@ void DPPanel::add_ui_toggles() {
                                           tr("Std. - Stock behavior.\nMAIN+ - ACC MAIN on = Display ON.\nOP+ - OP enabled = Display ON.\nMAIN- - ACC MAIN on = Display OFF\nOP- - OP enabled = Display OFF."),
                                           "",
                                           display_off_mode_texts, 200);
+
+  // DEV UI setting
+  std::vector<QString> dev_ui_settings_texts{tr("Off"), tr("Basic"), tr("Advanced"), tr("Complete")};
+  ButtonParamControl* dev_ui_setting = new ButtonParamControl("dp_dev_ui_info", tr("Developer UI"),
+                                          tr("Display real-time parameters and metrics from various sources.\nOff - Disabled\nBasic - Basic information\nAdvanced - Advanced information\nComplete - Full developer information"),
+                                          "",
+                                          dev_ui_settings_texts, 200);
+
   auto hide_hud = new ParamSpinBoxControl("dp_ui_hide_hud_speed_kph", tr("Hide HUD When Moves above:"), tr("To prevent screen burn-in, hide Speed, MAX Speed, and Steering/DM Icons when the car moves.\nOff = Stock Behavior\n1 km/h ≈ 0.6 mph"), "", 0, 120, 5, tr(" km/h"), tr("Off"));
 
   QWidget *label = nullptr;
@@ -272,6 +280,8 @@ void DPPanel::add_ui_toggles() {
       label = new LabelControl(title, "");
       addItem(label);
       addItem(display_off_mode_setting);
+      has_toggle = true;
+      addItem(dev_ui_setting);
       has_toggle = true;
       addItem(hide_hud);
       has_toggle = true;
